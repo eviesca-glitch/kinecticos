@@ -1156,7 +1156,7 @@ function SettingsView({ workoutLog, nutritionLog, recoveryLog }) {
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
 
-export default function App() {
+function App() {
   const [workoutLog,   setWorkoutLog]   = useLocalStorage("kineticos_w1", {});
   const [recoveryLog,  setRecoveryLog]  = useLocalStorage("kineticos_r1", {});
   const [nutritionLog, setNutritionLog] = useLocalStorage("kineticos_n1", {});
