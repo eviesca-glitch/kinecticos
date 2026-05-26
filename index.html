@@ -594,7 +594,236 @@ function SetLogger({ exercise, sets, onUpdate, accent }) {
   );
 }
 
-// ─── EXERCISE CARD ────────────────────────────────────────────────────────────
+// ─── GOOGLE DRIVE SYNC ────────────────────────────────────────────────────────
+// Uses Google Identity Services + Drive REST API
+// No backend needed — runs entirely in the browser
+
+const GDRIVE_BACKUP_FILENAME = "kineticos-backup.json";
+const GDRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
+
+// Google OAuth client ID — uses Drive appdata folder (private to this app)
+// User needs to authorize once; token is stored in memory per session
+let gdriveToken = null;
+let gdriveTokenExpiry = 0;
+
+function getGdriveToken() {
+  return new Promise((resolve, reject) => {
+    if (gdriveToken && Date.now() < gdriveTokenExpiry) {
+      resolve(gdriveToken);
+      return;
+    }
+    // Load Google Identity Services if not loaded
+    const load = () => {
+      if (!window.google?.accounts?.oauth2) {
+        reject(new Error("Google Identity Services not loaded"));
+        return;
+      }
+      const client = window.google.accounts.oauth2.initTokenClient({
+        client_id: "YOUR_GOOGLE_CLIENT_ID", // placeholder — see setup below
+        scope: GDRIVE_SCOPE,
+        callback: (resp) => {
+          if (resp.error) { reject(new Error(resp.error)); return; }
+          gdriveToken = resp.access_token;
+          gdriveTokenExpiry = Date.now() + (resp.expires_in - 60) * 1000;
+          resolve(gdriveToken);
+        }
+      });
+      client.requestAccessToken();
+    };
+    if (window.google?.accounts?.oauth2) { load(); }
+    else {
+      const s = document.createElement("script");
+      s.src = "https://accounts.google.com/gsi/client";
+      s.onload = load;
+      s.onerror = () => reject(new Error("Failed to load Google Identity Services"));
+      document.head.appendChild(s);
+    }
+  });
+}
+
+async function gdriveListBackup(token) {
+  const r = await fetch(
+    "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%27" + GDRIVE_BACKUP_FILENAME + "%27&fields=files(id,name,modifiedTime)",
+    { headers: { Authorization: "Bearer " + token } }
+  );
+  const d = await r.json();
+  return d.files ?? [];
+}
+
+async function gdriveSave(data, token) {
+  const body = JSON.stringify(data);
+  const files = await gdriveListBackup(token);
+  const existing = files[0];
+  const meta = { name: GDRIVE_BACKUP_FILENAME, parents: existing ? undefined : ["appDataFolder"] };
+  const form = new FormData();
+  form.append("metadata", new Blob([JSON.stringify(existing ? { name: GDRIVE_BACKUP_FILENAME } : meta)], { type: "application/json" }));
+  form.append("file", new Blob([body], { type: "application/json" }));
+  const url = existing
+    ? `https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=multipart`
+    : "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
+  const method = existing ? "PATCH" : "POST";
+  const r = await fetch(url, { method, headers: { Authorization: "Bearer " + token }, body: form });
+  return r.ok;
+}
+
+async function gdriveRestore(token) {
+  const files = await gdriveListBackup(token);
+  if (!files.length) return null;
+  const r = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${files[0].id}?alt=media`,
+    { headers: { Authorization: "Bearer " + token } }
+  );
+  return r.json();
+}
+
+function useDriveSync(workoutLog, recoveryLog, nutritionLog, bodyweightLog, customTargets) {
+  const [syncStatus, setSyncStatus] = useState("idle"); // idle | syncing | ok | error
+  const [lastSync, setLastSync] = useLocalStorage("kineticos_last_sync", null);
+  const [clientId] = useLocalStorage("kineticos_gclient", "");
+
+  const save = useCallback(async (cid) => {
+    const id = cid || clientId;
+    if (!id) return;
+    setSyncStatus("syncing");
+    try {
+      const token = await getGdriveToken();
+      const data = { workoutLog, recoveryLog, nutritionLog, bodyweightLog, customTargets, savedAt: new Date().toISOString(), version: 1 };
+      const ok = await gdriveSave(data, token);
+      if (ok) {
+        setSyncStatus("ok");
+        setLastSync(new Date().toISOString());
+      } else { setSyncStatus("error"); }
+    } catch { setSyncStatus("error"); }
+  }, [workoutLog, recoveryLog, nutritionLog, bodyweightLog, customTargets, clientId, setLastSync]);
+
+  const restore = useCallback(async () => {
+    setSyncStatus("syncing");
+    try {
+      const token = await getGdriveToken();
+      const data = await gdriveRestore(token);
+      setSyncStatus("ok");
+      return data;
+    } catch { setSyncStatus("error"); return null; }
+  }, []);
+
+  return { syncStatus, lastSync, save, restore, clientId };
+}
+
+function DriveSync({ workoutLog, recoveryLog, nutritionLog, bodyweightLog, customTargets,
+                     setWorkoutLog, setRecoveryLog, setNutritionLog, setBodyweightLog, setCustomTargets }) {
+  const { syncStatus, lastSync, save, restore } = useDriveSync(
+    workoutLog, recoveryLog, nutritionLog, bodyweightLog, customTargets
+  );
+  const [clientId, setClientId] = useLocalStorage("kineticos_gclient", "");
+  const [showSetup, setShowSetup] = useState(false);
+  const [restoreConfirm, setRestoreConfirm] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const statusColor = { idle:"#555", syncing:"#fbbf24", ok:"#4ade80", error:"#fb7185" }[syncStatus];
+  const statusLabel = { idle:"NOT CONFIGURED", syncing:"SYNCING...", ok:"SYNCED", error:"SYNC ERROR" }[syncStatus];
+
+  const handleSave = async () => {
+    setMsg("");
+    await save(clientId);
+    setMsg(syncStatus === "error" ? "Sync failed. Check your Client ID." : "");
+  };
+
+  const handleRestore = async () => {
+    setMsg("");
+    const data = await restore();
+    if (!data) { setMsg("No backup found or restore failed."); return; }
+    if (data.workoutLog)    setWorkoutLog(data.workoutLog);
+    if (data.recoveryLog)   setRecoveryLog(data.recoveryLog);
+    if (data.nutritionLog)  setNutritionLog(data.nutritionLog);
+    if (data.bodyweightLog) setBodyweightLog(data.bodyweightLog);
+    if (data.customTargets) setCustomTargets(data.customTargets);
+    setMsg("✓ Data restored from " + (data.savedAt ? new Date(data.savedAt).toLocaleDateString() : "backup"));
+    setRestoreConfirm(false);
+  };
+
+  return (
+    <Card label="GOOGLE DRIVE BACKUP">
+      {/* Status row */}
+      <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
+        <div style={{ width:8, height:8, borderRadius:"50%", background:statusColor, flexShrink:0,
+          boxShadow: syncStatus==="ok" ? `0 0 8px ${statusColor}` : "none" }} />
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:12, color:statusColor, fontWeight:700 }}>{statusLabel}</div>
+          {lastSync && syncStatus === "ok" && (
+            <div style={{ fontSize:10, color:"#444", marginTop:1 }}>
+              Last saved {new Date(lastSync).toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}
+            </div>
+          )}
+        </div>
+        <button onClick={() => setShowSetup(s => !s)}
+          style={{ background:"none", border:"1px solid #333", borderRadius:8,
+            color:"#666", cursor:"pointer", fontSize:11, padding:"4px 10px" }}>
+          {showSetup ? "hide" : "setup"}
+        </button>
+      </div>
+
+      {/* Setup instructions */}
+      {showSetup && (
+        <div style={{ background:"#0d0d0d", borderRadius:10, padding:14, marginBottom:12 }}>
+          <div style={{ color:"#888", fontSize:12, lineHeight:1.7, marginBottom:10 }}>
+            <strong style={{color:"#ccc"}}>One-time setup (5 min):</strong><br/>
+            1. Go to <strong style={{color:"#4ade80"}}>console.cloud.google.com</strong><br/>
+            2. Create project → Enable Drive API<br/>
+            3. OAuth consent → External → Add your email<br/>
+            4. Credentials → OAuth 2.0 Client ID → Web app<br/>
+            5. Add <strong style={{color:"#fff"}}>kinecticos.vercel.app</strong> as authorized origin<br/>
+            6. Copy the Client ID and paste below
+          </div>
+          <input
+            placeholder="Paste Google OAuth Client ID here..."
+            value={clientId}
+            onChange={e => setClientId(e.target.value)}
+            style={{
+              background:"#1a1a1a", border:"1px solid #333", borderRadius:8,
+              color:"#fff", padding:"10px 12px", fontSize:12, width:"100%",
+              boxSizing:"border-box", outline:"none", fontFamily:"inherit"
+            }}
+          />
+        </div>
+      )}
+
+      {/* Action buttons */}
+      {clientId && (
+        <div style={{ display:"flex", gap:8, marginBottom:msg ? 10 : 0 }}>
+          <button onClick={handleSave} style={{
+            flex:2, padding:"11px", borderRadius:10,
+            border:"1px solid #4ade8044", background:"#4ade8010",
+            color:"#4ade80", cursor:"pointer", fontSize:13, fontWeight:800
+          }}>
+            {syncStatus === "syncing" ? "Saving..." : "↑ Backup Now"}
+          </button>
+          {!restoreConfirm ? (
+            <button onClick={() => setRestoreConfirm(true)} style={{
+              flex:1, padding:"11px", borderRadius:10,
+              border:"1px solid #38bdf844", background:"#38bdf810",
+              color:"#38bdf8", cursor:"pointer", fontSize:13, fontWeight:800
+            }}>↓ Restore</button>
+          ) : (
+            <button onClick={handleRestore} style={{
+              flex:1, padding:"11px", borderRadius:10,
+              border:"1px solid #fb718544", background:"#fb718510",
+              color:"#fb7185", cursor:"pointer", fontSize:12, fontWeight:800
+            }}>Confirm?</button>
+          )}
+        </div>
+      )}
+
+      {!clientId && (
+        <div style={{ color:"#444", fontSize:12 }}>
+          Tap <strong style={{color:"#888"}}>setup</strong> above to enable automatic Google Drive backup.
+          Your data will sync privately to your Google account.
+        </div>
+      )}
+
+      {msg && <div style={{ fontSize:12, color:"#4ade80", marginTop:8 }}>{msg}</div>}
+    </Card>
+  );
+}
 
 function TargetEditor({ ex, customTarget, onSave, onClose, accent }) {
   const isTime = ex.type === "time";
@@ -1371,7 +1600,8 @@ function NutritionView({ nutritionLog, setNutritionLog, bodyweightLog, setBodywe
   );
 }
 
-function SettingsView({ workoutLog, nutritionLog, recoveryLog }) {
+function SettingsView({ workoutLog, recoveryLog, nutritionLog, bodyweightLog, customTargets,
+                        setWorkoutLog, setRecoveryLog, setNutritionLog, setBodyweightLog, setCustomTargets }) {
   const exportCSV = () => {
     const rows = [["date","exercise","set","reps","weight_kg","seconds","difficulty","note"]];
     for (const [dt, exMap] of Object.entries(workoutLog))
@@ -1389,7 +1619,7 @@ function SettingsView({ workoutLog, nutritionLog, recoveryLog }) {
   };
 
   const exportJSON = () => {
-    const data = { workoutLog, nutritionLog, recoveryLog, exported: new Date().toISOString() };
+    const data = { workoutLog, nutritionLog, recoveryLog, bodyweightLog, customTargets, exported: new Date().toISOString() };
     const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = "kineticos-data.json"; a.click();
@@ -1427,6 +1657,15 @@ function SettingsView({ workoutLog, nutritionLog, recoveryLog }) {
           ))}
         </div>
       </Card>
+
+      <DriveSync
+        workoutLog={workoutLog} recoveryLog={recoveryLog}
+        nutritionLog={nutritionLog} bodyweightLog={bodyweightLog}
+        customTargets={customTargets}
+        setWorkoutLog={setWorkoutLog} setRecoveryLog={setRecoveryLog}
+        setNutritionLog={setNutritionLog} setBodyweightLog={setBodyweightLog}
+        setCustomTargets={setCustomTargets}
+      />
 
       <Card label="EXPORT DATA">
         <div style={{ display:"flex", gap:10 }}>
@@ -1546,7 +1785,14 @@ function App() {
         {tab==="recovery" && <RecoveryView  recoveryLog={recoveryLog}  setRecoveryLog={setRecoveryLog} />}
         {tab==="stats"    && <DashboardView workoutLog={workoutLog}   prMap={prMap} bodyweightLog={bodyweightLog} customTargets={customTargets} />}
         {tab==="fuel"     && <NutritionView nutritionLog={nutritionLog} setNutritionLog={setNutritionLog} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} />}
-        {tab==="settings" && <SettingsView  workoutLog={workoutLog}   nutritionLog={nutritionLog} recoveryLog={recoveryLog} />}
+        {tab==="settings" && <SettingsView
+          workoutLog={workoutLog}   nutritionLog={nutritionLog}
+          recoveryLog={recoveryLog} bodyweightLog={bodyweightLog}
+          customTargets={customTargets}
+          setWorkoutLog={setWorkoutLog}   setRecoveryLog={setRecoveryLog}
+          setNutritionLog={setNutritionLog} setBodyweightLog={setBodyweightLog}
+          setCustomTargets={setCustomTargets}
+        />}
       </div>
 
       {/* Bottom nav */}
@@ -1576,6 +1822,7 @@ function App() {
     </div>
   );
 }
+
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(React.createElement(App));
   </script>
