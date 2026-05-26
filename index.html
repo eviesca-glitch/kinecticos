@@ -13,8 +13,7 @@
       name: "KineticOS", short_name: "KineticOS",
       description: "Elite calisthenics training tracker",
       start_url: "./", display: "standalone",
-      background_color: "#0a0a0a", theme_color: "#0a0a0a",
-      orientation: "portrait",
+      background_color: "#0a0a0a", theme_color: "#0a0a0a", orientation: "portrait",
       icons: [{ src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230a0a0a'/%3E%3Ctext x='256' y='330' font-family='Arial Black,sans-serif' font-size='280' font-weight='900' fill='%234ade80' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E", sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }]
     };
     const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
@@ -26,10 +25,7 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.23.9/babel.min.js"></script>
-  <style>
-    html, body { margin:0; padding:0; background:#0a0a0a; }
-    #root { min-height:100svh; }
-  </style>
+  <style>html,body{margin:0;padding:0;background:#0a0a0a;}#root{min-height:100svh;}</style>
 </head>
 <body>
   <div id="root"></div>
@@ -590,11 +586,86 @@ function SetLogger({ exercise, sets, onUpdate, accent }) {
 
 // ─── EXERCISE CARD ────────────────────────────────────────────────────────────
 
-function ExerciseCard({ ex, sets, onUpdate, accent, prMap }) {
+function TargetEditor({ ex, customTarget, onSave, onClose, accent }) {
+  const isTime = ex.type === "time";
+  const base = customTarget ?? ex.target;
+  const [sets, setSets] = useState(base.sets ?? 3);
+  const [reps, setReps] = useState(base.reps ?? 0);
+  const [secs, setSecs] = useState(base.seconds ?? 0);
+  const [weight, setWeight] = useState(base.weight ?? 0);
+
+  return (
+    <div style={{
+      background:"#0d0d0d", border:`1px solid ${accent}44`,
+      borderRadius:14, padding:16, marginBottom:10
+    }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
+        <Label style={{ marginBottom:0 }}>EDIT TARGET</Label>
+        <button onClick={onClose} style={{ background:"none", border:"none", color:"#555", cursor:"pointer", fontSize:18 }}>×</button>
+      </div>
+
+      <div style={{ display:"flex", gap:10, marginBottom:12 }}>
+        <div style={{ flex:1 }}>
+          <Label>SETS</Label>
+          <Stepper value={sets} onChange={setSets} step={1} min={1} accent={accent} wide />
+        </div>
+        <div style={{ flex:1 }}>
+          <Label>{isTime ? "SECONDS" : "REPS"}</Label>
+          <Stepper
+            value={isTime ? secs : reps}
+            onChange={isTime ? setSecs : setReps}
+            step={1} min={1} accent={accent} wide
+          />
+        </div>
+        {!isTime && (ex.equipment?.includes("gym") || weight > 0) && (
+          <div style={{ flex:1 }}>
+            <Label>WEIGHT (kg)</Label>
+            <Stepper value={weight} onChange={setWeight} step={2.5} min={0} accent={accent} wide />
+          </div>
+        )}
+      </div>
+
+      <div style={{ display:"flex", gap:8 }}>
+        <button onClick={onClose} style={{
+          flex:1, padding:"11px", borderRadius:10,
+          border:"1px solid #222", background:"none",
+          color:"#555", cursor:"pointer", fontSize:13, fontWeight:700
+        }}>Cancel</button>
+        <button onClick={() => {
+          const t = isTime
+            ? { sets, seconds: secs }
+            : { sets, reps, weight };
+          onSave(t);
+          onClose();
+        }} style={{
+          flex:2, padding:"11px", borderRadius:10,
+          border:`1px solid ${accent}66`, background:`${accent}18`,
+          color:accent, cursor:"pointer", fontSize:13, fontWeight:800
+        }}>Save Target</button>
+      </div>
+    </div>
+  );
+}
+
+function ExerciseCard({ ex, sets, onUpdate, accent, prMap, customTargets, onSaveTarget }) {
   const [open, setOpen] = useState(false);
   const [showVars, setShowVars] = useState(false);
+  const [showTargetEditor, setShowTargetEditor] = useState(false);
   const [displayName, setDisplayName] = useState(ex.name);
   const [activeEquip, setActiveEquip] = useState(ex.equipment ?? []);
+
+  // Merge custom target over default
+  const effectiveTarget = useMemo(() => ({
+    ...ex.target,
+    ...(customTargets?.[ex.id] ?? {})
+  }), [ex.target, ex.id, customTargets]);
+
+  // Use effective target for display and coach engine
+  const activeEx = useMemo(() => ({
+    ...ex,
+    equipment: activeEquip,
+    target: effectiveTarget
+  }), [ex, activeEquip, effectiveTarget]);
 
   const hasMeaningfulData = sets.length > 0 && sets.some(s =>
     ex.type === "time" ? (s.seconds ?? 0) > 0 : (s.reps ?? 0) > 0
@@ -623,6 +694,8 @@ function ExerciseCard({ ex, sets, onUpdate, accent, prMap }) {
         ))
     : [];
 
+  const hasCustomTarget = !!(customTargets?.[ex.id]);
+
   const selectVar = (v) => {
     setDisplayName(v.name);
     setActiveEquip(v.equipment ?? ex.equipment ?? []);
@@ -648,8 +721,9 @@ function ExerciseCard({ ex, sets, onUpdate, accent, prMap }) {
           <div style={{ color:"#fff", fontSize:15, fontWeight:700, lineHeight:1.25 }}>{displayName}</div>
           <div style={{ color:"#555", fontSize:12, marginTop:3 }}>
             {ex.type === "time"
-              ? `${ex.target.sets} sets · ${ex.target.seconds}s each`
-              : `${ex.target.sets} sets · ${ex.target.reps} reps${(ex.target.weight??0)>0?` · ${ex.target.weight}kg`:""}`}
+              ? `${effectiveTarget.sets} sets · ${effectiveTarget.seconds}s each`
+              : `${effectiveTarget.sets} sets · ${effectiveTarget.reps} reps${(effectiveTarget.weight??0)>0?` · ${effectiveTarget.weight}kg`:""}`}
+            {hasCustomTarget && <span style={{ color:accent, marginLeft:6, fontSize:10 }}>✎ custom</span>}
           </div>
           <div style={{ display:"flex", gap:4, marginTop:6, flexWrap:"wrap" }}>
             {activeEquip.map(e => <EquipBadge key={e} eq={e} />)}
@@ -675,6 +749,32 @@ function ExerciseCard({ ex, sets, onUpdate, accent, prMap }) {
               <span style={{ color:"#5a9a5a", fontSize:13, lineHeight:1.5 }}>{ex.note}</span>
             </div>
           )}
+
+          {/* Target editor toggle */}
+          <button onClick={() => setShowTargetEditor(v => !v)} style={{
+            width:"100%", background:"none",
+            border:`1px dashed ${hasCustomTarget ? accent+"88" : "#333"}`,
+            borderRadius:10, padding:"9px 14px", cursor:"pointer", marginBottom:8,
+            display:"flex", alignItems:"center", justifyContent:"space-between"
+          }}>
+            <span style={{ color: hasCustomTarget ? accent : "#666", fontSize:12, letterSpacing:1, fontWeight:700 }}>
+              {hasCustomTarget ? "✎ EDIT TARGET" : "SET CUSTOM TARGET"}
+            </span>
+            <span style={{ color:"#444", fontSize:11 }}>
+              {effectiveTarget.sets}×{ex.type === "time" ? `${effectiveTarget.seconds}s` : effectiveTarget.reps}
+            </span>
+          </button>
+
+          {showTargetEditor && (
+            <TargetEditor
+              ex={ex}
+              customTarget={customTargets?.[ex.id]}
+              onSave={t => onSaveTarget(ex.id, t)}
+              onClose={() => setShowTargetEditor(false)}
+              accent={accent}
+            />
+          )}
+
           {ex.variations?.length > 0 && (
             <button onClick={() => setShowVars(v => !v)} style={{
               width:"100%", background:"none", border:`1px dashed ${accent}44`,
@@ -711,7 +811,7 @@ function ExerciseCard({ ex, sets, onUpdate, accent, prMap }) {
             </div>
           )}
           <SetLogger
-            exercise={{ ...ex, equipment: activeEquip }}
+            exercise={activeEx}
             sets={sets}
             onUpdate={onUpdate}
             accent={accent}
@@ -724,7 +824,7 @@ function ExerciseCard({ ex, sets, onUpdate, accent, prMap }) {
 
 // ─── VIEWS ────────────────────────────────────────────────────────────────────
 
-function WorkoutView({ workoutLog, setWorkoutLog, prMap }) {
+function WorkoutView({ workoutLog, setWorkoutLog, prMap, customTargets, onSaveTarget }) {
   const todayKey = useMemo(() => new Date().toISOString().split("T")[0], []);
   const [selDay, setSelDay] = useState(() => {
     const i = DAYS.indexOf(TODAY_NAME);
@@ -846,6 +946,8 @@ function WorkoutView({ workoutLog, setWorkoutLog, prMap }) {
             onUpdate={s => updateExercise(ex.id, s)}
             accent={plan.accent}
             prMap={prMap}
+            customTargets={customTargets}
+            onSaveTarget={onSaveTarget}
           />
         ))}
       </div>
@@ -953,7 +1055,7 @@ function MiniChart({ title, data, color, unit }) {
 
 // ─── PROGRESSIVE OVERLOAD ENGINE ─────────────────────────────────────────────
 
-function analyzeProgress(workoutLog) {
+function analyzeProgress(workoutLog, customTargets = {}) {
   const insights = [];
   const today = new Date();
 
@@ -980,9 +1082,11 @@ function analyzeProgress(workoutLog) {
     const ex = ALL_EXERCISES.find(e => e.id === exId);
     if (!ex) continue;
 
-    const tReps = ex.target?.reps ?? 0;
-    const tSecs = ex.target?.seconds ?? 0;
-    const tSets = ex.target?.sets ?? 0;
+    // Merge custom target over default
+    const effectiveTarget = { ...ex.target, ...(customTargets[exId] ?? {}) };
+    const tReps = effectiveTarget.reps ?? 0;
+    const tSecs = effectiveTarget.seconds ?? 0;
+    const tSets = effectiveTarget.sets ?? 0;
     const hasVariations = (ex.variations?.length ?? 0) > 0;
 
     // Last 14 days sessions only
@@ -1138,7 +1242,7 @@ function InsightCard({ insight }) {
   );
 }
 
-function DashboardView({ workoutLog, prMap, bodyweightLog }) {
+function DashboardView({ workoutLog, prMap, bodyweightLog, customTargets }) {
   // Get last 10 logged dates sorted
   const dates = useMemo(() => Object.keys(workoutLog).sort().slice(-10), [workoutLog]);
 
@@ -1164,33 +1268,7 @@ function DashboardView({ workoutLog, prMap, bodyweightLog }) {
     }).filter(Boolean),
   [prMap]);
 
-function DashboardView({ workoutLog, prMap, bodyweightLog }) {
-  // Get last 10 logged dates sorted
-  const dates = useMemo(() => Object.keys(workoutLog).sort().slice(-10), [workoutLog]);
-
-  const pullupData = useMemo(() => dates.map(dt => ({
-    label: dt.slice(5),
-    value: (workoutLog[dt]?.["wg_pullups"] ?? []).reduce((a,s)=>a+(s.reps??0), 0)
-  })), [dates, workoutLog]);
-
-  const flData = useMemo(() => dates.map(dt => {
-    const sets = [...(workoutLog[dt]?.["oneleg_fl"]??[]), ...(workoutLog[dt]?.["tuck_fl"]??[])];
-    return { label: dt.slice(5), value: sets.length ? Math.max(...sets.map(s=>s.seconds??0)) : 0 };
-  }), [dates, workoutLog]);
-
-  const bwData = useMemo(() => {
-    const keys = Object.keys(bodyweightLog).sort().slice(-14);
-    return keys.map(k => ({ label: k.slice(5), value: bodyweightLog[k] }));
-  }, [bodyweightLog]);
-
-  const prEntries = useMemo(() =>
-    Object.entries(prMap).map(([id,pr]) => {
-      const ex = ALL_EXERCISES.find(e => e.id === id);
-      return ex ? { ex, pr } : null;
-    }).filter(Boolean),
-  [prMap]);
-
-  const insights = useMemo(() => analyzeProgress(workoutLog), [workoutLog]);
+  const insights = useMemo(() => analyzeProgress(workoutLog, customTargets), [workoutLog, customTargets]);
 
   return (
     <div style={{ padding:"16px 16px 90px" }}>
@@ -1373,11 +1451,16 @@ function SettingsView({ workoutLog, nutritionLog, recoveryLog }) {
 // ─── APP ──────────────────────────────────────────────────────────────────────
 
 function App() {
-  const [workoutLog,   setWorkoutLog]   = useLocalStorage("kineticos_w1", {});
-  const [recoveryLog,  setRecoveryLog]  = useLocalStorage("kineticos_r1", {});
-  const [nutritionLog, setNutritionLog] = useLocalStorage("kineticos_n1", {});
-  const [bodyweightLog,setBodyweightLog]= useLocalStorage("kineticos_b1", {});
+  const [workoutLog,    setWorkoutLog]    = useLocalStorage("kineticos_w1", {});
+  const [recoveryLog,   setRecoveryLog]   = useLocalStorage("kineticos_r1", {});
+  const [nutritionLog,  setNutritionLog]  = useLocalStorage("kineticos_n1", {});
+  const [bodyweightLog, setBodyweightLog] = useLocalStorage("kineticos_b1", {});
+  const [customTargets, setCustomTargets] = useLocalStorage("kineticos_t1", {});
   const [tab, setTab] = useState("workout");
+
+  const onSaveTarget = useCallback((exId, target) => {
+    setCustomTargets(prev => ({ ...prev, [exId]: target }));
+  }, [setCustomTargets]);
 
   const prMap = useMemo(() => {
     const map = {};
@@ -1449,9 +1532,9 @@ function App() {
 
       {/* Page content */}
       <div className="view" key={tab} style={{ paddingTop:4 }}>
-        {tab==="workout"  && <WorkoutView   workoutLog={workoutLog}   setWorkoutLog={setWorkoutLog}   prMap={prMap} />}
+        {tab==="workout"  && <WorkoutView   workoutLog={workoutLog}   setWorkoutLog={setWorkoutLog}   prMap={prMap} customTargets={customTargets} onSaveTarget={onSaveTarget} />}
         {tab==="recovery" && <RecoveryView  recoveryLog={recoveryLog}  setRecoveryLog={setRecoveryLog} />}
-        {tab==="stats"    && <DashboardView workoutLog={workoutLog}   prMap={prMap} bodyweightLog={bodyweightLog} />}
+        {tab==="stats"    && <DashboardView workoutLog={workoutLog}   prMap={prMap} bodyweightLog={bodyweightLog} customTargets={customTargets} />}
         {tab==="fuel"     && <NutritionView nutritionLog={nutritionLog} setNutritionLog={setNutritionLog} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} />}
         {tab==="settings" && <SettingsView  workoutLog={workoutLog}   nutritionLog={nutritionLog} recoveryLog={recoveryLog} />}
       </div>
@@ -1483,7 +1566,6 @@ function App() {
     </div>
   );
 }
-
   </script>
   <script>
     const root = ReactDOM.createRoot(document.getElementById('root'));
