@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="KineticOS" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <title>KineticOS</title>
+
+  <!-- PWA Manifest inline -->
+  <script>
+    const manifest = {
+      name: "KineticOS",
+      short_name: "KineticOS",
+      description: "Elite calisthenics training tracker",
+      start_url: "./",
+      display: "standalone",
+      background_color: "#0a0a0a",
+      theme_color: "#0a0a0a",
+      orientation: "portrait",
+      icons: [
+        { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230a0a0a'/%3E%3Ctext x='256' y='320' font-family='Arial Black,sans-serif' font-size='260' font-weight='900' fill='%234ade80' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E", sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }
+      ]
+    };
+    const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('link');
+    link.rel = 'manifest'; link.href = url;
+    document.currentScript.parentNode.appendChild(link);
+  </script>
+
+  <!-- Apple touch icon — green K on black -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230a0a0a'/%3E%3Ctext x='256' y='330' font-family='Arial Black,sans-serif' font-size='280' font-weight='900' fill='%234ade80' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E" />
+
+  <!-- React + Babel from CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    html, body { margin:0; padding:0; background:#0a0a0a; }
+    #root { min-height:100svh; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useCallback, useMemo, useRef } = React;
+
+
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+
+const WEEK_SPLIT = {
+  Monday: {
+    label: "PULL", accent: "#4ade80", icon: "↑", location: "home",
+    exercises: [
+      { id: "wg_pullups", name: "Wide-Grip Pull-Ups", type: "reps",
+        equipment: ["bar"], target: { sets: 4, reps: 8, weight: 0 },
+        variations: [
+          { name: "Jumping Pull-Ups (assisted)", level: 1 },
+          { name: "Chin-Ups", level: 2 },
+          { name: "Wide-Grip Pull-Ups", level: 3 },
+          { name: "Archer Pull-Ups", level: 4 },
+          { name: "Weighted Pull-Ups (+vest)", level: 5, equipment: ["bar","vest"] },
+          { name: "One-Arm Pull-Up Negatives", level: 6 },
+        ],
+      },
+      { id: "ring_rows", name: "Ring Rows", type: "reps",
+        equipment: ["rings"], target: { sets: 3, reps: 12, weight: 0 },
+        note: "Feet elevated = harder. Body horizontal = hardest.",
+        variations: [
+          { name: "Ring Rows (feet on floor)", level: 1 },
+          { name: "Ring Rows (feet elevated)", level: 2 },
+          { name: "Ring Rows (body horizontal)", level: 3 },
+          { name: "Typewriter Ring Rows", level: 4 },
+        ],
+      },
+      { id: "dead_hang", name: "Dead Hang", type: "time",
+        equipment: ["bar"], target: { sets: 3, seconds: 45 },
+        variations: [
+          { name: "Two-Arm Dead Hang", level: 1 },
+          { name: "Active Hang (scapula pulled)", level: 2 },
+          { name: "L-Hang", level: 3 },
+          { name: "One-Arm Dead Hang", level: 4 },
+        ],
+      },
+      { id: "ttb", name: "Toes-to-Bar", type: "reps",
+        equipment: ["bar"], target: { sets: 3, reps: 8, weight: 0 },
+        variations: [
+          { name: "Knee Raises", level: 1 },
+          { name: "L-Sit Raises", level: 2 },
+          { name: "Toes-to-Bar", level: 3 },
+          { name: "Windshield Wipers", level: 4 },
+        ],
+      },
+      { id: "ring_curl", name: "Ring Bicep Curls", type: "reps",
+        equipment: ["rings"], target: { sets: 3, reps: 10, weight: 0 },
+        note: "Rings at hip height. Supinate at the top — pull chest to rings.",
+        variations: [
+          { name: "Ring Curls (feet forward — easy)", level: 1 },
+          { name: "Ring Curls (body angled back)", level: 2 },
+          { name: "Ring Curls (near horizontal)", level: 3 },
+        ],
+      },
+      { id: "cardio_pull", name: "Cardio Finisher", type: "time",
+        equipment: ["floor"], target: { sets: 1, seconds: 600 },
+        note: "Jumping jacks, mountain climbers, or light jog.",
+      },
+    ],
+  },
+  Tuesday: {
+    label: "PUSH", accent: "#f97316", icon: "↓", location: "home",
+    exercises: [
+      { id: "pushups", name: "Wide Push-Ups", type: "reps",
+        equipment: ["floor"], target: { sets: 4, reps: 20, weight: 0 },
+        variations: [
+          { name: "Knee Push-Ups", level: 1 },
+          { name: "Wide Push-Ups", level: 2 },
+          { name: "Archer Push-Ups", level: 3 },
+          { name: "Ring Push-Ups", level: 4, equipment: ["rings"] },
+          { name: "Weighted Push-Ups (+vest)", level: 5, equipment: ["vest"] },
+          { name: "Pseudo Planche Push-Ups", level: 6 },
+        ],
+      },
+      { id: "dips", name: "Ring Dips", type: "reps",
+        equipment: ["rings"], target: { sets: 4, reps: 10, weight: 0 },
+        note: "Rings turned out at the bottom. Lock out fully at the top.",
+        variations: [
+          { name: "Bar Dips", level: 1, equipment: ["bar"] },
+          { name: "Ring Dips (feet tucked)", level: 2 },
+          { name: "Ring Dips (straight body)", level: 3 },
+          { name: "Weighted Ring Dips (+vest)", level: 4, equipment: ["rings","vest"] },
+        ],
+      },
+      { id: "hspu_neg", name: "HSPU Negatives", type: "reps",
+        equipment: ["floor"], target: { sets: 3, reps: 5, weight: 0 },
+        note: "Wall-supported. 3–5s controlled descent. Best shoulder mass builder.",
+        variations: [
+          { name: "Pike Push-Ups", level: 1 },
+          { name: "Elevated Pike Push-Ups", level: 2 },
+          { name: "HSPU Negatives (wall)", level: 3 },
+          { name: "HSPU (wall-supported)", level: 4 },
+          { name: "Freestanding HSPU", level: 5 },
+        ],
+      },
+      { id: "planche_lean", name: "Planche Lean", type: "time",
+        equipment: ["parallettes","floor"], target: { sets: 4, seconds: 15 },
+        note: "Protract scapula hard. Lean shoulders past wrists.",
+        variations: [
+          { name: "Planche Lean (floor)", level: 1 },
+          { name: "Planche Lean (parallettes)", level: 2, equipment: ["parallettes"] },
+          { name: "Tuck Planche", level: 3 },
+          { name: "Advanced Tuck Planche", level: 4 },
+          { name: "Straddle Planche", level: 5 },
+        ],
+      },
+      { id: "lsit", name: "L-Sit Hold", type: "time",
+        equipment: ["parallettes","floor"], target: { sets: 4, seconds: 20 },
+        note: "Parallettes preferred for wrist comfort. Depress scapula aggressively.",
+        variations: [
+          { name: "Tuck L-Sit (floor)", level: 1 },
+          { name: "L-Sit (floor)", level: 2 },
+          { name: "L-Sit (parallettes)", level: 3, equipment: ["parallettes"] },
+          { name: "V-Sit", level: 4 },
+        ],
+      },
+    ],
+  },
+  Wednesday: {
+    label: "CARDIO", accent: "#38bdf8", icon: "⚡", location: "outdoor",
+    exercises: [
+      { id: "sprints", name: "Sprint Intervals", type: "reps",
+        equipment: ["floor"], target: { sets: 8, reps: 1, weight: 0 },
+        note: "~20s all-out / 40s walk recovery. Outdoors on flat or hill.",
+        variations: [
+          { name: "Sprint Intervals (flat)", level: 1 },
+          { name: "Hill Sprints", level: 2 },
+          { name: "Weighted Vest Sprints", level: 3, equipment: ["vest"] },
+        ],
+      },
+      { id: "light_pull", name: "Active Bar Work", type: "reps",
+        equipment: ["bar"], target: { sets: 3, reps: 10, weight: 0 },
+        note: "Submaximal — not to failure. Scapula pulls or light chin-ups.",
+        variations: [
+          { name: "Scapula Pull-Ups", level: 1 },
+          { name: "Chin-Ups (light)", level: 2 },
+          { name: "Pull-Ups (submaximal)", level: 3 },
+        ],
+      },
+      { id: "core_circuit", name: "Core Circuit", type: "time",
+        equipment: ["floor","bar"], target: { sets: 3, seconds: 60 },
+        note: "Hollow holds / leg raises / dragon flag negatives.",
+        variations: [
+          { name: "Hollow Body + Plank Circuit", level: 1 },
+          { name: "Hollow Body + Leg Raise Circuit", level: 2 },
+          { name: "Dragon Flag Negatives + Hollow", level: 3, equipment: ["bar"] },
+        ],
+      },
+    ],
+  },
+  Thursday: {
+    label: "FRONT LEVER", accent: "#a78bfa", icon: "◈", location: "home",
+    exercises: [
+      { id: "tuck_fl", name: "Tuck FL Hold", type: "time",
+        equipment: ["bar","rings"], target: { sets: 4, seconds: 10 },
+        note: "Rings preferred — allows natural wrist rotation. Retract and depress scapula.",
+        variations: [
+          { name: "Tuck FL Hold (bar)", level: 1, equipment: ["bar"] },
+          { name: "Tuck FL Hold (rings)", level: 2, equipment: ["rings"] },
+          { name: "Advanced Tuck FL Hold", level: 3 },
+          { name: "One-Leg FL Hold", level: 4 },
+          { name: "Straddle FL Hold", level: 5 },
+          { name: "Full FL Hold", level: 6 },
+        ],
+      },
+      { id: "oneleg_fl", name: "One-Leg FL Hold", type: "time",
+        equipment: ["bar","rings"], target: { sets: 5, seconds: 8 },
+        variations: [
+          { name: "One-Leg FL Hold (bar)", level: 1, equipment: ["bar"] },
+          { name: "One-Leg FL Hold (rings)", level: 2, equipment: ["rings"] },
+          { name: "Straddle FL Hold", level: 3 },
+          { name: "Full FL Hold", level: 4 },
+        ],
+      },
+      { id: "fl_raises", name: "FL Raises", type: "reps",
+        equipment: ["bar","rings"], target: { sets: 4, reps: 6, weight: 0 },
+        note: "Dead hang → tuck/straddle FL. Explosive up, 3s controlled descent.",
+        variations: [
+          { name: "Tuck FL Raises", level: 1 },
+          { name: "One-Leg FL Raises", level: 2 },
+          { name: "Straddle FL Raises", level: 3 },
+          { name: "Full FL Raises", level: 4 },
+        ],
+      },
+      { id: "hollow_hold", name: "Hollow Body Hold", type: "time",
+        equipment: ["floor"], target: { sets: 4, seconds: 30 },
+        note: "Lower back pressed hard into floor. Foundation of all lever work.",
+        variations: [
+          { name: "Hollow Body (knees bent)", level: 1 },
+          { name: "Hollow Body Hold (full)", level: 2 },
+          { name: "Hollow Body Rock", level: 3 },
+        ],
+      },
+      { id: "ring_rows_fl", name: "Ring Rows — FL Grip", type: "reps",
+        equipment: ["rings"], target: { sets: 3, reps: 8, weight: 0 },
+        note: "Overhand grip, body horizontal. Bridges rows and front lever strength.",
+        variations: [
+          { name: "Ring Rows (underhand grip)", level: 1 },
+          { name: "Ring Rows (overhand / FL grip)", level: 2 },
+          { name: "Ring Rows (body horizontal)", level: 3 },
+        ],
+      },
+    ],
+  },
+  Friday: {
+    label: "LEGS/SWIM", accent: "#fb7185", icon: "〜", location: "variable",
+    modes: {
+      home: {
+        label: "HOME · CALI LEGS",
+        exercises: [
+          { id: "pistol_squat", name: "Pistol Squats", type: "reps",
+            equipment: ["floor"], target: { sets: 4, reps: 6, weight: 0 },
+            note: "Hold rings for balance assist if needed. Full depth.",
+            variations: [
+              { name: "Assisted Pistol (ring support)", level: 1, equipment: ["rings"] },
+              { name: "Box Pistol Squats", level: 2 },
+              { name: "Pistol Squats (full)", level: 3 },
+              { name: "Weighted Pistol (+vest)", level: 4, equipment: ["vest"] },
+            ],
+          },
+          { id: "nordic_curl", name: "Nordic Curls", type: "reps",
+            equipment: ["bar"], target: { sets: 3, reps: 5, weight: 0 },
+            note: "Hook feet under low bar. Best calisthenics hamstring builder. Push off floor if needed.",
+            variations: [
+              { name: "Nordic Curl Negatives (eccentric only)", level: 1 },
+              { name: "Nordic Curls (partial range)", level: 2 },
+              { name: "Nordic Curls (full)", level: 3 },
+            ],
+          },
+          { id: "shrimp_squat", name: "Shrimp Squats", type: "reps",
+            equipment: ["floor"], target: { sets: 3, reps: 8, weight: 0 },
+            variations: [
+              { name: "Shrimp Squat (knee touches floor)", level: 1 },
+              { name: "Shrimp Squat (floating)", level: 2 },
+              { name: "Weighted Shrimp Squat (+vest)", level: 3, equipment: ["vest"] },
+            ],
+          },
+          { id: "jump_lunges", name: "Jump Lunges", type: "reps",
+            equipment: ["floor"], target: { sets: 3, reps: 16, weight: 0 },
+            note: "Explosive plyometric. Great cardio + leg finisher combo.",
+            variations: [
+              { name: "Walking Lunges", level: 1 },
+              { name: "Jump Lunges", level: 2 },
+              { name: "Weighted Jump Lunges (+vest)", level: 3, equipment: ["vest"] },
+            ],
+          },
+          { id: "calf_raises_home", name: "Single-Leg Calf Raises", type: "reps",
+            equipment: ["floor"], target: { sets: 3, reps: 20, weight: 0 },
+            note: "On a step edge for full range. Hold bar lightly for balance only.",
+          },
+        ],
+      },
+      gym: {
+        label: "COUNTRY CLUB · GYM + POOL",
+        exercises: [
+          { id: "barbell_squat", name: "Barbell Back Squats", type: "reps",
+            equipment: ["gym"], target: { sets: 4, reps: 8, weight: 60 },
+            variations: [
+              { name: "Goblet Squat", level: 1 },
+              { name: "Barbell Back Squat", level: 2 },
+              { name: "Barbell Front Squat", level: 3 },
+            ],
+          },
+          { id: "rdl", name: "Romanian Deadlifts", type: "reps",
+            equipment: ["gym"], target: { sets: 3, reps: 10, weight: 60 },
+            variations: [
+              { name: "DB RDL", level: 1 },
+              { name: "Barbell RDL", level: 2 },
+              { name: "Single-Leg RDL", level: 3 },
+            ],
+          },
+          { id: "leg_press", name: "Leg Press", type: "reps",
+            equipment: ["gym"], target: { sets: 3, reps: 12, weight: 100 },
+          },
+          { id: "calf_raises_gym", name: "Standing Calf Raises", type: "reps",
+            equipment: ["gym"], target: { sets: 4, reps: 15, weight: 40 },
+          },
+          { id: "tethered_swim", name: "Tethered Sprint Swims", type: "reps",
+            equipment: ["pool"], target: { sets: 6, reps: 1, weight: 0 },
+            note: "~20s all-out sprint vs tether. Full rest between each.",
+          },
+          { id: "swim_laps", name: "Swim Laps (aerobic)", type: "time",
+            equipment: ["pool"], target: { sets: 1, seconds: 1200 },
+            note: "Optional aerobic cool-down after sprints.",
+          },
+        ],
+      },
+    },
+  },
+};
+
+function getAllExercises() {
+  const all = [];
+  for (const plan of Object.values(WEEK_SPLIT)) {
+    if (plan.exercises) all.push(...plan.exercises);
+    if (plan.modes) for (const m of Object.values(plan.modes)) all.push(...m.exercises);
+  }
+  return all;
+}
+const ALL_EXERCISES = getAllExercises();
+const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday"];
+const TODAY_NAME = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date().getDay()];
+
+function useLocalStorage(key, init) {
+  const [val, setVal] = useState(() => {
+    try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : init; }
+    catch { return init; }
+  });
+  const set = useCallback((v) => {
+    setVal(prev => {
+      const next = typeof v === "function" ? v(prev) : v;
+      try { localStorage.setItem(key, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, [key]);
+  return [val, set];
+}
+
+// ─── DESIGN ───────────────────────────────────────────────────────────────────
+const EQUIP_COLORS = {
+  bar:"#38bdf8", rings:"#fb7185", parallettes:"#f97316",
+  floor:"#666", vest:"#a78bfa", gym:"#fbbf24", pool:"#22d3ee"
+};
+
+// ─── ATOMS ────────────────────────────────────────────────────────────────────
+
+function Label({ children, style }) {
+  return <div style={{ color:"#555", fontSize:11, letterSpacing:2, marginBottom:8, fontWeight:600, ...style }}>{children}</div>;
+}
+
+function Card({ label, children }) {
+  return (
+    <div style={{ background:"#111", border:"1px solid #1e1e1e", borderRadius:16, padding:16, marginBottom:12 }}>
+      {label && <Label>{label}</Label>}
+      {children}
+    </div>
+  );
+}
+
+function EquipBadge({ eq }) {
+  const color = EQUIP_COLORS[eq] ?? "#555";
+  return (
+    <span style={{
+      fontSize:10, padding:"2px 7px", borderRadius:8,
+      border:`1px solid ${color}44`, color, letterSpacing:0.8
+    }}>{eq}</span>
+  );
+}
+
+function ProgressBar({ pct, color }) {
+  const safePct = isNaN(pct) || !isFinite(pct) ? 0 : Math.min(Math.max(pct, 0), 100);
+  return (
+    <div style={{ background:"#1a1a1a", borderRadius:6, height:6, marginTop:12, overflow:"hidden" }}>
+      <div style={{ width:`${safePct}%`, height:"100%", background:color, borderRadius:6, transition:"width 0.35s ease" }} />
+    </div>
+  );
+}
+
+function RatingDots({ value, onChange, color = "#4ade80" }) {
+  return (
+    <div style={{ display:"flex", gap:4 }}>
+      {Array.from({ length:10 }, (_,i) => (
+        <button key={i} onClick={() => onChange(i+1)} style={{
+          width:22, height:22, borderRadius:"50%", border:"none", cursor:"pointer",
+          background: i < value ? color : "#222", transition:"background 0.1s", flexShrink:0
+        }} />
+      ))}
+    </div>
+  );
+}
+
+// Stepper — handles typed input correctly, no 0-trap, no mid-type reset
+function Stepper({ value, onChange, min=0, step=1, accent, wide=false }) {
+  const [raw, setRaw] = useState(value === 0 ? "" : String(value));
+  const inputRef = useRef(null);
+  const isFocused = useRef(false);
+
+  // Only sync display from external value when user is NOT typing
+  useEffect(() => {
+    if (!isFocused.current) {
+      setRaw(value === 0 ? "" : String(value));
+    }
+  }, [value]);
+
+  const commit = (str) => {
+    const n = parseFloat(str);
+    const valid = !isNaN(n) && n >= min;
+    const next = valid ? parseFloat(n.toFixed(2)) : min;
+    onChange(next);
+    setRaw(next === 0 ? "" : String(next));
+  };
+
+  const nudge = (dir) => {
+    const next = Math.max(min, parseFloat(((value || 0) + dir * step).toFixed(2)));
+    onChange(next);
+  };
+
+  return (
+    <div style={{
+      display:"flex", alignItems:"center",
+      background:"#1a1a1a", borderRadius:12, overflow:"hidden",
+      width: wide ? "100%" : "auto"
+    }}>
+      <button onMouseDown={e => { e.preventDefault(); nudge(-1); }}
+        style={{ width:48, height:52, background:"none", border:"none", color:"#ccc", fontSize:24, cursor:"pointer", flexShrink:0 }}>−</button>
+      <input
+        ref={inputRef}
+        type="number"
+        value={raw}
+        placeholder="0"
+        onFocus={e => { isFocused.current = true; e.target.select(); }}
+        onChange={e => setRaw(e.target.value)}
+        onBlur={e => { isFocused.current = false; commit(e.target.value); }}
+        onKeyDown={e => { if (e.key === "Enter") { commit(raw); inputRef.current?.blur(); } }}
+        style={{
+          flex:1, minWidth:0, height:52, background:"none", border:"none",
+          color:"#fff", fontSize:22, fontWeight:800, textAlign:"center",
+          outline:"none", fontFamily:"inherit"
+        }}
+      />
+      <button onMouseDown={e => { e.preventDefault(); nudge(1); }}
+        style={{ width:48, height:52, background:"none", border:"none", color:accent, fontSize:24, cursor:"pointer", flexShrink:0 }}>+</button>
+    </div>
+  );
+}
+
+// Toggle (defined outside RecoveryView to maintain DOM identity)
+function Toggle({ value, opts, onChange, colors }) {
+  return (
+    <div style={{ display:"flex", gap:8 }}>
+      {opts.map(o => (
+        <button key={o} onClick={() => onChange(o)} style={{
+          flex:1, padding:"12px 8px", borderRadius:12, border:"none", cursor:"pointer",
+          background: value === o ? (colors?.[o] ?? "#4ade80") : "#1a1a1a",
+          color: value === o ? "#000" : "#666", fontWeight:800, fontSize:13,
+          textTransform:"capitalize", transition:"background 0.15s"
+        }}>{o}</button>
+      ))}
+    </div>
+  );
+}
+
+// ─── SET LOGGER ───────────────────────────────────────────────────────────────
+
+function SetLogger({ exercise, sets, onUpdate, accent }) {
+  const isGym = exercise.equipment?.includes("gym");
+  const hasWeight = isGym || (exercise.target?.weight ?? 0) > 0;
+  const weightStep = isGym ? 2.5 : 5;
+
+  const tReps = exercise.target?.reps ?? 0;
+  const tSecs = exercise.target?.seconds ?? 0;
+  const tSets = exercise.target?.sets ?? 0;
+
+  // Only auto-populate on first open (when sets array is empty)
+  const didInit = useRef(false);
+  useEffect(() => {
+    if (!didInit.current && sets.length === 0) {
+      didInit.current = true;
+      const fresh = exercise.type === "time"
+        ? { id: Date.now(), seconds: tSecs, difficulty: 5, note: "" }
+        : { id: Date.now(), reps: tReps, weight: exercise.target?.weight ?? 0, difficulty: 5, note: "" };
+      onUpdate([fresh]);
+    }
+  }, []); // eslint-disable-line
+
+  const addSet = () => {
+    const last = sets[sets.length - 1];
+    const fallback = exercise.type === "time"
+      ? { id: Date.now(), seconds: tSecs, difficulty: 5, note: "" }
+      : { id: Date.now(), reps: tReps, weight: exercise.target?.weight ?? 0, difficulty: 5, note: "" };
+    const next = last ? { ...last, id: Date.now(), note: "" } : fallback;
+    onUpdate([...sets, next]);
+  };
+
+  const upd = (i, field, val) => onUpdate(sets.map((s,idx) => idx===i ? {...s,[field]:val} : s));
+  const rem = (i) => onUpdate(sets.filter((_,idx) => idx !== i));
+
+  return (
+    <div>
+      {sets.map((s, i) => {
+        const hit = exercise.type === "time" ? (s.seconds >= tSecs && tSecs > 0) : (s.reps >= tReps && tReps > 0);
+        const setKey = s.id ?? i; // stable id preferred, fallback for legacy data
+        return (
+          <div key={setKey} style={{
+            background:"#141414", borderRadius:14, padding:"14px",
+            marginBottom:10, border:`1px solid ${hit ? accent+"66" : "#242424"}`
+          }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <div style={{
+                  width:28, height:28, borderRadius:"50%",
+                  background: hit ? accent : "#222",
+                  display:"flex", alignItems:"center", justifyContent:"center",
+                  fontSize:11, fontWeight:900, color: hit ? "#000" : "#666",
+                  transition:"background 0.2s"
+                }}>S{i+1}</div>
+                {hit && <span style={{ fontSize:11, color:accent }}>TARGET HIT ✓</span>}
+              </div>
+              <button onClick={() => rem(i)}
+                style={{ background:"none", border:"none", color:"#444", cursor:"pointer", fontSize:22, lineHeight:1, padding:"0 4px" }}>×</button>
+            </div>
+
+            {exercise.type === "time" ? (
+              <div>
+                <Label>SECONDS{tSecs > 0 ? <span style={{color:"#333",fontWeight:400}}> / {tSecs}s target</span> : ""}</Label>
+                <Stepper value={s.seconds} onChange={v => upd(i,"seconds",v)} step={1} accent={accent} wide />
+              </div>
+            ) : (
+              <div style={{ display:"flex", gap:10 }}>
+                <div style={{ flex: hasWeight ? 1 : "unset", minWidth: hasWeight ? 0 : 160 }}>
+                  <Label>REPS{tReps > 0 ? <span style={{color:"#333",fontWeight:400}}> / {tReps}</span> : ""}</Label>
+                  <Stepper value={s.reps} onChange={v => upd(i,"reps",v)} step={1} accent={accent} wide />
+                </div>
+                {hasWeight && (
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <Label>WEIGHT (kg)</Label>
+                    <Stepper value={s.weight ?? 0} onChange={v => upd(i,"weight",v)} step={weightStep} accent={accent} wide />
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ marginTop:14 }}>
+              <Label>EFFORT <span style={{color:accent,fontWeight:400}}>{s.difficulty}/10</span></Label>
+              <RatingDots value={s.difficulty} onChange={v => upd(i,"difficulty",v)} color={accent} />
+            </div>
+
+            <input
+              placeholder="Form note, cue, fatigue..."
+              value={s.note}
+              onChange={e => upd(i,"note",e.target.value)}
+              style={{
+                background:"#1e1e1e", border:"1px solid #2a2a2a", borderRadius:10,
+                color:"#999", padding:"10px 12px", fontSize:13, width:"100%",
+                boxSizing:"border-box", outline:"none", marginTop:12, fontFamily:"inherit"
+              }}
+            />
+          </div>
+        );
+      })}
+
+      <button onClick={addSet} style={{
+        width:"100%", padding:"13px", borderRadius:12,
+        border:`1px dashed ${accent}44`, background:`${accent}08`,
+        color:accent, cursor:"pointer", fontSize:13, letterSpacing:1.5, fontWeight:700
+      }}>
+        + ADD SET{tSets > 0 ? ` (${sets.length}/${tSets})` : ""}
+      </button>
+    </div>
+  );
+}
+
+// ─── EXERCISE CARD ────────────────────────────────────────────────────────────
+
+function ExerciseCard({ ex, sets, onUpdate, accent, prMap }) {
+  const [open, setOpen] = useState(false);
+  const [showVars, setShowVars] = useState(false);
+  const [displayName, setDisplayName] = useState(ex.name);
+  const [activeEquip, setActiveEquip] = useState(ex.equipment ?? []);
+
+  const hasMeaningfulData = sets.length > 0 && sets.some(s =>
+    ex.type === "time" ? (s.seconds ?? 0) > 0 : (s.reps ?? 0) > 0
+  );
+
+  const isPR = useMemo(() => {
+    if (!hasMeaningfulData) return false;
+    const best = prMap[ex.id];
+    if (ex.type === "reps") {
+      const top = Math.max(...sets.map(s => s.reps ?? 0));
+      return best ? top > (best.reps ?? 0) : top > 0;
+    }
+    const top = Math.max(...sets.map(s => s.seconds ?? 0));
+    return best ? top > (best.seconds ?? 0) : top > 0;
+  }, [sets, prMap, ex.id, ex.type, hasMeaningfulData]);
+
+  const pills = hasMeaningfulData
+    ? sets.filter(s => ex.type === "time" ? (s.seconds??0)>0 : (s.reps??0)>0)
+        .map((s,i) => (
+          <span key={i} style={{
+            fontSize:11, padding:"3px 9px", borderRadius:8,
+            background:accent+"18", color:accent, fontWeight:700
+          }}>
+            {ex.type === "time" ? `${s.seconds}s` : `${s.reps}${(s.weight??0)>0?`@${s.weight}kg`:""}`}
+          </span>
+        ))
+    : [];
+
+  const selectVar = (v) => {
+    setDisplayName(v.name);
+    setActiveEquip(v.equipment ?? ex.equipment ?? []);
+    setShowVars(false);
+  };
+
+  return (
+    <div style={{ marginBottom:10 }}>
+      <button onClick={() => setOpen(o => !o)} style={{
+        width:"100%",
+        background: hasMeaningfulData ? `${accent}0d` : "#111",
+        border:`1px solid ${hasMeaningfulData ? accent+"44" : "#1e1e1e"}`,
+        borderRadius:14, padding:"14px 16px", cursor:"pointer",
+        display:"flex", alignItems:"flex-start", gap:12, textAlign:"left"
+      }}>
+        <div style={{
+          width:9, height:9, borderRadius:"50%", marginTop:6, flexShrink:0,
+          background: hasMeaningfulData ? accent : "#2a2a2a",
+          boxShadow: hasMeaningfulData ? `0 0 8px ${accent}77` : "none",
+          transition:"all 0.2s"
+        }} />
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ color:"#fff", fontSize:15, fontWeight:700, lineHeight:1.25 }}>{displayName}</div>
+          <div style={{ color:"#555", fontSize:12, marginTop:3 }}>
+            {ex.type === "time"
+              ? `${ex.target.sets} sets · ${ex.target.seconds}s each`
+              : `${ex.target.sets} sets · ${ex.target.reps} reps${(ex.target.weight??0)>0?` · ${ex.target.weight}kg`:""}`}
+          </div>
+          <div style={{ display:"flex", gap:4, marginTop:6, flexWrap:"wrap" }}>
+            {activeEquip.map(e => <EquipBadge key={e} eq={e} />)}
+          </div>
+          {pills.length > 0 && (
+            <div style={{ display:"flex", gap:4, marginTop:8, flexWrap:"wrap" }}>{pills}</div>
+          )}
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6, flexShrink:0 }}>
+          {isPR && <span style={{ background:"#fbbf24", color:"#000", fontSize:10, fontWeight:900, padding:"2px 7px", borderRadius:6, letterSpacing:0.8 }}>PR</span>}
+          <span style={{ color:"#333", fontSize:13 }}>{open ? "▲" : "▼"}</span>
+        </div>
+      </button>
+
+      {open && (
+        <div style={{ padding:"6px 2px 2px" }}>
+          {ex.note && (
+            <div style={{
+              background:"#0b170b", border:"1px solid #1a3020",
+              borderRadius:10, padding:"10px 14px", marginBottom:10
+            }}>
+              <span style={{ color:"#4ade8055", fontSize:10, letterSpacing:1.5 }}>COACH · </span>
+              <span style={{ color:"#5a9a5a", fontSize:13, lineHeight:1.5 }}>{ex.note}</span>
+            </div>
+          )}
+          {ex.variations?.length > 0 && (
+            <button onClick={() => setShowVars(v => !v)} style={{
+              width:"100%", background:"none", border:`1px dashed ${accent}44`,
+              borderRadius:10, padding:"9px 14px", cursor:"pointer", marginBottom:8,
+              display:"flex", alignItems:"center", justifyContent:"space-between"
+            }}>
+              <span style={{ color:accent, fontSize:12, letterSpacing:1, fontWeight:700 }}>SWITCH VARIATION</span>
+              <span style={{ color:"#444", fontSize:12 }}>{showVars ? "▲" : "▼"}</span>
+            </button>
+          )}
+          {showVars && (
+            <div style={{ background:"#0d0d0d", borderRadius:12, padding:12, marginBottom:10 }}>
+              <Label>SELECT VARIATION</Label>
+              {ex.variations.map(v => (
+                <button key={v.level} onClick={() => selectVar(v)} style={{
+                  display:"flex", alignItems:"center", gap:12, width:"100%",
+                  background:"none", border:"none", padding:"10px 4px",
+                  borderBottom:"1px solid #1a1a1a", cursor:"pointer", textAlign:"left"
+                }}>
+                  <span style={{
+                    width:22, height:22, borderRadius:"50%", flexShrink:0,
+                    background:accent+"22", border:`1px solid ${accent}55`,
+                    display:"flex", alignItems:"center", justifyContent:"center",
+                    fontSize:10, color:accent, fontWeight:900
+                  }}>{v.level}</span>
+                  <span style={{ color:"#ddd", fontSize:14, flex:1 }}>{v.name}</span>
+                  {v.equipment?.length > 0 && (
+                    <div style={{ display:"flex", gap:4 }}>
+                      {v.equipment.map(e => <EquipBadge key={e} eq={e} />)}
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+          <SetLogger
+            exercise={{ ...ex, equipment: activeEquip }}
+            sets={sets}
+            onUpdate={onUpdate}
+            accent={accent}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── VIEWS ────────────────────────────────────────────────────────────────────
+
+function WorkoutView({ workoutLog, setWorkoutLog, prMap }) {
+  const todayKey = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const [selDay, setSelDay] = useState(() => {
+    const i = DAYS.indexOf(TODAY_NAME);
+    return i >= 0 ? i : 0;
+  });
+  const [fridayMode, setFridayMode] = useState("home");
+
+  const day = DAYS[selDay];
+  const plan = WEEK_SPLIT[day];
+  // All logs for today's actual date (not week+dayname)
+  const todayLog = workoutLog?.[todayKey] ?? {};
+  const exercises = day === "Friday" ? plan.modes[fridayMode].exercises : plan.exercises;
+
+  // Save to today's date key, exercise id — mixing days freely is supported
+  const updateExercise = useCallback((exId, sets) => {
+    setWorkoutLog(prev => ({
+      ...prev,
+      [todayKey]: { ...(prev[todayKey] ?? {}), [exId]: sets }
+    }));
+  }, [todayKey, setWorkoutLog]);
+
+  // Count exercises completed TODAY across ALL templates (not just current tab)
+  const todayCompletedIds = Object.entries(todayLog)
+    .filter(([, sets]) => sets.some(s => (s.reps ?? 0) > 0 || (s.seconds ?? 0) > 0))
+    .map(([id]) => id);
+
+  // Count for current tab's exercises
+  const completedCount = exercises.filter(ex =>
+    todayCompletedIds.includes(ex.id)
+  ).length;
+
+  // Total exercises logged today across all templates (for header badge)
+  const totalTodayCount = todayCompletedIds.length;
+
+  return (
+    <div style={{ paddingBottom:90 }}>
+      {/* Date + total logged today */}
+      <div style={{ padding:"8px 16px 4px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <div style={{ fontSize:11, color:"#444", letterSpacing:1 }}>
+          {new Date().toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})}
+        </div>
+        {totalTodayCount > 0 && (
+          <div style={{ fontSize:11, color:"#4ade80", fontWeight:700 }}>
+            {totalTodayCount} exercise{totalTodayCount !== 1 ? "s" : ""} logged today
+          </div>
+        )}
+      </div>
+
+      {/* Template tabs — pick any to mix into today */}
+      <div style={{ display:"flex", gap:8, overflowX:"auto", padding:"8px 16px 10px", scrollbarWidth:"none" }}>
+        {DAYS.map((d, i) => {
+          const p = WEEK_SPLIT[d];
+          const sel = i === selDay;
+          const isToday = d === TODAY_NAME;
+          // Has any exercise from this template been logged today?
+          const templateExIds = (p.exercises ?? [...(p.modes?.home?.exercises??[]),...(p.modes?.gym?.exercises??[])]).map(e=>e.id);
+          const templateDone = templateExIds.some(id => todayCompletedIds.includes(id));
+          return (
+            <button key={d} onClick={() => setSelDay(i)} style={{
+              flexShrink:0, padding:"8px 14px", borderRadius:22,
+              border: sel ? `1.5px solid ${p.accent}` : `1px solid ${templateDone ? p.accent+"44" : "#1e1e1e"}`,
+              background: sel ? `${p.accent}18` : templateDone ? `${p.accent}0a` : "#111",
+              color: sel ? p.accent : templateDone ? p.accent+"99" : "#444",
+              cursor:"pointer", fontSize:11, letterSpacing:1.5, fontWeight:800, position:"relative"
+            }}>
+              {p.label}
+              {isToday && !sel && <span style={{
+                position:"absolute", top:-2, right:-2,
+                width:7, height:7, borderRadius:"50%",
+                background:p.accent, boxShadow:`0 0 6px ${p.accent}`
+              }} />}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Day header */}
+      <div style={{ padding:"4px 16px 16px" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <span style={{ fontSize:36, color:plan.accent, lineHeight:1 }}>{plan.icon}</span>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:24, fontWeight:900, letterSpacing:-0.5 }}>{plan.label}</div>
+            <div style={{ fontSize:11, color:"#444", letterSpacing:1.5, marginTop:2 }}>
+              {day === "Friday" ? plan.modes[fridayMode].label : "TEMPLATE · MIX FREELY"}
+            </div>
+          </div>
+          {completedCount > 0 && (
+            <div style={{
+              background:`${plan.accent}18`, border:`1px solid ${plan.accent}44`,
+              borderRadius:10, padding:"6px 12px", textAlign:"center", minWidth:56
+            }}>
+              <div style={{ fontSize:18, fontWeight:900, color:plan.accent, lineHeight:1 }}>{completedCount}/{exercises.length}</div>
+              <div style={{ fontSize:9, color:"#555", letterSpacing:1, marginTop:2 }}>DONE</div>
+            </div>
+          )}
+        </div>
+
+        {day === "Friday" && (
+          <div style={{ display:"flex", gap:8, marginTop:14 }}>
+            {[["home","🏠 HOME CALI"],["gym","🏋️ COUNTRY CLUB"]].map(([m,label]) => (
+              <button key={m} onClick={() => setFridayMode(m)} style={{
+                flex:1, padding:"11px", borderRadius:12,
+                border:`1.5px solid ${fridayMode===m ? plan.accent+"88" : "#1e1e1e"}`,
+                background: fridayMode===m ? `${plan.accent}18` : "#111",
+                color: fridayMode===m ? plan.accent : "#555",
+                cursor:"pointer", fontSize:13, fontWeight:800
+              }}>{label}</button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{ padding:"0 16px" }}>
+        {exercises.map(ex => (
+          <ExerciseCard
+            key={`${ex.id}-${fridayMode}`}
+            ex={ex}
+            sets={todayLog[ex.id] ?? []}
+            onUpdate={s => updateExercise(ex.id, s)}
+            accent={plan.accent}
+            prMap={prMap}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RecoveryView({ recoveryLog, setRecoveryLog }) {
+  const today = new Date().toISOString().split("T")[0];
+  const entry = recoveryLog[today] ?? { soreness:5, sleep:7, grip:"recovered", shoulder:"recovered" };
+  const up = (field, val) => setRecoveryLog(prev => ({ ...prev, [today]: { ...entry, [field]: val } }));
+
+  const last7 = useMemo(() => Array.from({ length:7 }, (_,i) => {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    return recoveryLog[d.toISOString().split("T")[0]];
+  }).filter(Boolean), [recoveryLog]);
+
+  const avgSore  = last7.length ? last7.reduce((a,b) => a+(b.soreness??5),0)/last7.length : 5;
+  const avgSleep = last7.length ? last7.reduce((a,b) => a+(b.sleep??7),0)/last7.length : 7;
+  const risk = avgSore>7||avgSleep<6 ? "HIGH" : avgSore>5||avgSleep<7 ? "MODERATE" : "LOW";
+  const riskColor = { HIGH:"#fb7185", MODERATE:"#fbbf24", LOW:"#4ade80" }[risk];
+
+  return (
+    <div style={{ padding:"16px 16px 90px" }}>
+      <div style={{ fontSize:22, fontWeight:900, marginBottom:2 }}>RECOVERY</div>
+      <div style={{ fontSize:12, color:"#444", marginBottom:22, letterSpacing:1 }}>{today}</div>
+
+      <Card label="MUSCLE SORENESS">
+        <RatingDots value={entry.soreness} onChange={v => up("soreness",v)} color="#fb7185" />
+        <div style={{ color:"#666", fontSize:12, marginTop:8 }}>{entry.soreness}/10</div>
+      </Card>
+
+      <Card label="SLEEP QUALITY">
+        <RatingDots value={entry.sleep} onChange={v => up("sleep",v)} color="#38bdf8" />
+        <div style={{ color:"#666", fontSize:12, marginTop:8 }}>{entry.sleep}/10</div>
+      </Card>
+
+      <Card label="GRIP FATIGUE">
+        <Toggle value={entry.grip} opts={["recovered","fatigued"]}
+          onChange={v => up("grip",v)} colors={{ recovered:"#4ade80", fatigued:"#fb7185" }} />
+      </Card>
+
+      <Card label="SHOULDER STATUS">
+        <Toggle value={entry.shoulder} opts={["recovered","fatigued"]}
+          onChange={v => up("shoulder",v)} colors={{ recovered:"#4ade80", fatigued:"#fb7185" }} />
+      </Card>
+
+      <div style={{
+        background:`${riskColor}0d`, border:`1px solid ${riskColor}44`,
+        borderRadius:16, padding:18, marginTop:4
+      }}>
+        <Label>7-DAY DELOAD SIGNAL</Label>
+        <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+          <div style={{ width:14, height:14, borderRadius:"50%", background:riskColor, boxShadow:`0 0 10px ${riskColor}`, flexShrink:0 }} />
+          <div>
+            <div style={{ color:riskColor, fontSize:20, fontWeight:900 }}>{risk} RISK</div>
+            <div style={{ color:"#555", fontSize:12, marginTop:2 }}>
+              Soreness {avgSore.toFixed(1)} · Sleep {avgSleep.toFixed(1)}/10 · 7-day avg
+            </div>
+          </div>
+        </div>
+        <div style={{ color:riskColor, fontSize:13, marginTop:12, lineHeight:1.6 }}>
+          {risk==="HIGH" && "⚠ Deload this week. Cut volume 40–50%."}
+          {risk==="MODERATE" && "Monitor carefully. Prioritize sleep and protein."}
+          {risk==="LOW" && "✓ Full capacity. Chase PRs."}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniChart({ title, data, color, unit }) {
+  if (!data.length || data.every(d => !d.value)) return null;
+  const max = Math.max(...data.map(d => d.value), 1);
+
+  return (
+    <div style={{ background:"#111", border:"1px solid #1a1a1a", borderRadius:16, padding:16, marginBottom:12 }}>
+      <Label>{title}</Label>
+      <div style={{ display:"flex", alignItems:"flex-end", gap:3, height:80 }}>
+        {data.map((d, i) => {
+          const isLast = i === data.length - 1;
+          const barH = d.value ? Math.max((d.value/max)*56, 3) : 1;
+          // Fix: format label cleanly — remove leading dash
+          const label = d.label.replace(/^-/,"");
+          return (
+            <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:3, justifyContent:"flex-end", height:"100%" }}>
+              {d.value > 0 && (
+                <div style={{ fontSize:9, color: isLast ? color : "#3a3a3a", textAlign:"center" }}>
+                  {d.value}{unit}
+                </div>
+              )}
+              <div style={{
+                width:"100%", borderRadius:4,
+                background: isLast ? color : `${color}44`,
+                height:`${barH}px`, transition:"height 0.35s ease"
+              }} />
+              <div style={{ fontSize:9, color:"#333", whiteSpace:"nowrap" }}>{label}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function DashboardView({ workoutLog, prMap, bodyweightLog }) {
+  // Get last 10 logged dates sorted
+  const dates = useMemo(() => Object.keys(workoutLog).sort().slice(-10), [workoutLog]);
+
+  const pullupData = useMemo(() => dates.map(dt => ({
+    label: dt.slice(5),
+    value: (workoutLog[dt]?.["wg_pullups"] ?? []).reduce((a,s)=>a+(s.reps??0), 0)
+  })), [dates, workoutLog]);
+
+  const flData = useMemo(() => dates.map(dt => {
+    const sets = [...(workoutLog[dt]?.["oneleg_fl"]??[]), ...(workoutLog[dt]?.["tuck_fl"]??[])];
+    return { label: dt.slice(5), value: sets.length ? Math.max(...sets.map(s=>s.seconds??0)) : 0 };
+  }), [dates, workoutLog]);
+
+  const bwData = useMemo(() => {
+    const keys = Object.keys(bodyweightLog).sort().slice(-14);
+    return keys.map(k => ({ label: k.slice(5), value: bodyweightLog[k] }));
+  }, [bodyweightLog]);
+
+  const prEntries = useMemo(() =>
+    Object.entries(prMap).map(([id,pr]) => {
+      const ex = ALL_EXERCISES.find(e => e.id === id);
+      return ex ? { ex, pr } : null;
+    }).filter(Boolean),
+  [prMap]);
+
+  return (
+    <div style={{ padding:"16px 16px 90px" }}>
+      <div style={{ fontSize:22, fontWeight:900, marginBottom:20 }}>PERFORMANCE</div>
+
+      <MiniChart title="PULL-UP VOLUME (reps/week)" data={pullupData} color="#4ade80" unit="" />
+      <MiniChart title="FRONT LEVER MAX HOLD (sec)" data={flData} color="#a78bfa" unit="s" />
+      {bwData.length > 0 && <MiniChart title="BODY WEIGHT (kg)" data={bwData} color="#38bdf8" unit="" />}
+
+      <div style={{ marginTop:20 }}>
+        <Label>PERSONAL RECORDS</Label>
+        {prEntries.length === 0 ? (
+          <div style={{ color:"#333", fontSize:14, padding:"24px 0", textAlign:"center" }}>
+            Log your first workout to start tracking PRs
+          </div>
+        ) : prEntries.map(({ ex, pr }) => (
+          <div key={ex.id} style={{
+            display:"flex", justifyContent:"space-between", alignItems:"center",
+            padding:"13px 0", borderBottom:"1px solid #1a1a1a"
+          }}>
+            <span style={{ color:"#aaa", fontSize:14 }}>{ex.name}</span>
+            <span style={{ color:"#fbbf24", fontWeight:800, fontSize:14 }}>
+              {ex.type==="time" ? `${pr.seconds}s` : `${pr.reps} reps${(pr.weight??0)>0?` @${pr.weight}kg`:""}`}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function NutritionView({ nutritionLog, setNutritionLog, bodyweightLog, setBodyweightLog }) {
+  const today = new Date().toISOString().split("T")[0];
+  const entry = nutritionLog[today] ?? { protein:0, calories:0 };
+  const bw = bodyweightLog[today] ?? 0;
+
+  const up = (field, val) => setNutritionLog(prev => ({ ...prev, [today]: { ...entry, [field]: val } }));
+
+  const proteinTarget = 195;
+  const calTarget = 2400;
+  const deficit = calTarget - entry.calories;
+
+  const bwData = useMemo(() => {
+    const keys = Object.keys(bodyweightLog).sort().slice(-7);
+    return keys.map(k => ({ label: k.slice(5), value: bodyweightLog[k] }));
+  }, [bodyweightLog]);
+
+  return (
+    <div style={{ padding:"16px 16px 90px" }}>
+      <div style={{ fontSize:22, fontWeight:900, marginBottom:2 }}>FUEL</div>
+      <div style={{ fontSize:12, color:"#444", marginBottom:22, letterSpacing:1 }}>{today}</div>
+
+      <Card label="BODY WEIGHT (kg)">
+        <Stepper value={bw} onChange={v => setBodyweightLog(prev => ({...prev,[today]:v}))} step={0.1} accent="#38bdf8" wide />
+      </Card>
+
+      <Card label={`PROTEIN — ${entry.protein}g / ${proteinTarget}g target`}>
+        <Stepper value={entry.protein} onChange={v => up("protein",v)} step={5} accent="#4ade80" wide />
+        <ProgressBar pct={(entry.protein/proteinTarget)*100} color="#4ade80" />
+      </Card>
+
+      <Card label={`CALORIES — ${entry.calories} / ${calTarget} target`}>
+        <Stepper value={entry.calories} onChange={v => up("calories",v)} step={50} accent="#f97316" wide />
+        <ProgressBar pct={(entry.calories/calTarget)*100} color="#f97316" />
+        {entry.calories > 0 && (
+          <div style={{ marginTop:10, fontSize:13, fontWeight:700, color: deficit>0?"#4ade80":"#fb7185" }}>
+            {deficit>0 ? `${deficit} cal deficit` : `${Math.abs(deficit)} cal surplus`}
+          </div>
+        )}
+      </Card>
+
+      {bwData.length > 1 && <MiniChart title="WEIGHT TREND (7 days · kg)" data={bwData} color="#38bdf8" unit="" />}
+    </div>
+  );
+}
+
+function SettingsView({ workoutLog, nutritionLog, recoveryLog }) {
+  const exportCSV = () => {
+    const rows = [["date","exercise","set","reps","weight_kg","seconds","difficulty","note"]];
+    for (const [dt, exMap] of Object.entries(workoutLog))
+      for (const [exId, sets] of Object.entries(exMap))
+        if (Array.isArray(sets))
+          sets.forEach((s,i) => rows.push([
+            dt, exId, i+1,
+            s.reps ?? "", s.weight ?? "", s.seconds ?? "",
+            s.difficulty ?? "",
+            `"${(s.note??"").replace(/"/g,"'")}"`
+          ]));
+    const blob = new Blob([rows.map(r=>r.join(",")).join("\n")], {type:"text/csv"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "kineticos-workouts.csv"; a.click();
+  };
+
+  const exportJSON = () => {
+    const data = { workoutLog, nutritionLog, recoveryLog, exported: new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "kineticos-data.json"; a.click();
+  };
+
+  const stats = useMemo(() => {
+    let sessions=0, sets=0, reps=0, seconds=0;
+    for (const exMap of Object.values(workoutLog)) {
+      if (!exMap || typeof exMap !== "object") continue;
+      const hasData = Object.values(exMap).some(s => Array.isArray(s) && s.length > 0);
+      if (hasData) sessions++;
+      for (const s of Object.values(exMap)) {
+        if (!Array.isArray(s)) continue;
+        sets += s.length;
+        for (const set of s) {
+          reps += set.reps ?? 0;
+          seconds += set.seconds ?? 0;
+        }
+      }
+    }
+    return { sessions, sets, reps, hours: Math.round(seconds/3600) };
+  }, [workoutLog]);
+
+  return (
+    <div style={{ padding:"16px 16px 90px" }}>
+      <div style={{ fontSize:22, fontWeight:900, marginBottom:20 }}>SETTINGS</div>
+
+      <Card label="LIFETIME STATS">
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+          {[["Sessions",stats.sessions],["Total Sets",stats.sets],["Total Reps",stats.reps],["Hold Hours",stats.hours]].map(([l,v])=>(
+            <div key={l} style={{ background:"#1a1a1a", borderRadius:12, padding:"14px 12px", textAlign:"center" }}>
+              <div style={{ fontSize:26, fontWeight:900 }}>{v}</div>
+              <div style={{ color:"#555", fontSize:10, marginTop:3, letterSpacing:1 }}>{l.toUpperCase()}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card label="EXPORT DATA">
+        <div style={{ display:"flex", gap:10 }}>
+          {[["CSV","#4ade80",exportCSV],["JSON","#38bdf8",exportJSON]].map(([l,c,fn])=>(
+            <button key={l} onClick={fn} style={{
+              flex:1, padding:"13px", borderRadius:12,
+              border:`1px solid ${c}44`, background:`${c}0d`,
+              color:c, cursor:"pointer", fontSize:14, fontWeight:800
+            }}>Export {l}</button>
+          ))}
+        </div>
+        <div style={{ color:"#333", fontSize:11, marginTop:10 }}>
+          CSV opens in Excel/Sheets. JSON for full backup and restore.
+        </div>
+      </Card>
+
+      <Card label="INSTALL ON HOME SCREEN">
+        <div style={{ color:"#888", fontSize:14, lineHeight:1.8 }}>
+          <strong style={{color:"#ccc"}}>iPhone Safari:</strong> tap the Share icon → "Add to Home Screen"<br/>
+          <strong style={{color:"#ccc"}}>Android Chrome:</strong> tap ⋮ → "Add to Home screen"<br/>
+          <span style={{color:"#444",fontSize:12}}>Runs full-screen. Works offline after first load.</span>
+        </div>
+      </Card>
+
+      <div style={{ color:"#252525", fontSize:11, textAlign:"center", marginTop:24, letterSpacing:1 }}>
+        KINETICOS v1 · All data stays on your device
+      </div>
+    </div>
+  );
+}
+
+// ─── APP ──────────────────────────────────────────────────────────────────────
+
+export default function App() {
+  const [workoutLog,   setWorkoutLog]   = useLocalStorage("kineticos_w1", {});
+  const [recoveryLog,  setRecoveryLog]  = useLocalStorage("kineticos_r1", {});
+  const [nutritionLog, setNutritionLog] = useLocalStorage("kineticos_n1", {});
+  const [bodyweightLog,setBodyweightLog]= useLocalStorage("kineticos_b1", {});
+  const [tab, setTab] = useState("workout");
+
+  const prMap = useMemo(() => {
+    const map = {};
+    // New structure: workoutLog[dateKey][exId] = sets[]
+    for (const dayData of Object.values(workoutLog)) {
+      if (!dayData || typeof dayData !== "object") continue;
+      for (const [exId, sets] of Object.entries(dayData)) {
+        if (!Array.isArray(sets) || !sets.length) continue;
+        const ex = ALL_EXERCISES.find(e => e.id === exId);
+        if (!ex) continue;
+        if (ex.type === "reps") {
+          const top = sets.reduce((b,s)=>(s.reps??0)>(b?.reps??0)?s:b, null);
+          if (top && (top.reps??0) > (map[exId]?.reps??0)) map[exId] = top;
+        } else {
+          const top = sets.reduce((b,s)=>(s.seconds??0)>(b?.seconds??0)?s:b, null);
+          if (top && (top.seconds??0) > (map[exId]?.seconds??0)) map[exId] = top;
+        }
+      }
+    }
+    return map;
+  }, [workoutLog]);
+
+  const tabs = [
+    { id:"workout",  label:"TRAIN",   icon:"◉" },
+    { id:"recovery", label:"RECOVER", icon:"♡" },
+    { id:"stats",    label:"STATS",   icon:"▦" },
+    { id:"fuel",     label:"FUEL",    icon:"◎" },
+    { id:"settings", label:"MORE",    icon:"≡" },
+  ];
+
+  return (
+    <div style={{
+      fontFamily:"'DM Mono','Courier New',monospace",
+      background:"#0a0a0a", color:"#fff",
+      minHeight:"100svh", maxWidth:480, margin:"0 auto",
+      position:"relative", overflowX:"hidden"
+    }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&display=swap');
+        *, *::before, *::after { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+        input[type=number] { -moz-appearance:textfield; }
+        ::-webkit-scrollbar { display:none; }
+        html { scroll-behavior:smooth; }
+        @keyframes slideUp {
+          from { opacity:0; transform:translateY(8px); }
+          to   { opacity:1; transform:none; }
+        }
+        .view { animation: slideUp 0.18s ease both; }
+        button { font-family:inherit; }
+        input, textarea { font-family:inherit; }
+      `}</style>
+
+      {/* Fixed header */}
+      <div style={{
+        position:"sticky", top:0, zIndex:10,
+        background:"#0a0a0a", borderBottom:"1px solid #141414",
+        padding:"14px 18px 12px",
+        display:"flex", justifyContent:"space-between", alignItems:"center"
+      }}>
+        <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:24, letterSpacing:4, lineHeight:1 }}>
+          KINETIC<span style={{color:"#4ade80"}}>OS</span>
+        </div>
+        <div style={{ fontSize:11, color:"#333", letterSpacing:0.5 }}>
+          {new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
+        </div>
+      </div>
+
+      {/* Page content */}
+      <div className="view" key={tab} style={{ paddingTop:4 }}>
+        {tab==="workout"  && <WorkoutView   workoutLog={workoutLog}   setWorkoutLog={setWorkoutLog}   prMap={prMap} />}
+        {tab==="recovery" && <RecoveryView  recoveryLog={recoveryLog}  setRecoveryLog={setRecoveryLog} />}
+        {tab==="stats"    && <DashboardView workoutLog={workoutLog}   prMap={prMap} bodyweightLog={bodyweightLog} />}
+        {tab==="fuel"     && <NutritionView nutritionLog={nutritionLog} setNutritionLog={setNutritionLog} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} />}
+        {tab==="settings" && <SettingsView  workoutLog={workoutLog}   nutritionLog={nutritionLog} recoveryLog={recoveryLog} />}
+      </div>
+
+      {/* Bottom nav */}
+      <div style={{
+        position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)",
+        width:"100%", maxWidth:480,
+        background:"rgba(10,10,10,0.97)", backdropFilter:"blur(12px)",
+        borderTop:"1px solid #181818",
+        display:"flex",
+        paddingBottom:"max(10px, env(safe-area-inset-bottom))",
+        paddingTop:8,
+        zIndex:20
+      }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={{
+            flex:1, background:"none", border:"none", cursor:"pointer",
+            display:"flex", flexDirection:"column", alignItems:"center", gap:4,
+            color: tab===t.id ? "#4ade80" : "#888",
+            padding:"2px 4px",
+            transition:"color 0.12s"
+          }}>
+            <span style={{ fontSize:19, lineHeight:1 }}>{t.icon}</span>
+            <span style={{ fontSize:11, letterSpacing:1, fontWeight:700, lineHeight:1 }}>{t.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+    // Mount
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>
