@@ -162,6 +162,16 @@ const WEEK_SPLIT = {
           { name: "Weighted Vest Sprints", level: 3, equipment: ["vest"] },
         ],
       },
+      { id: "vo2max_4x4", name: "4×4 VO2max Intervals", type: "reps",
+        equipment: ["floor"], target: { sets: 4, reps: 1, weight: 0 },
+        note: "4 min at ~90–95% max HR / 3 min active recovery walk. One of the most effective VO2max protocols in sports science. Use HR monitor or perceived exertion — you should barely be able to speak.",
+        variations: [
+          { name: "4×4 Running (flat)", level: 1 },
+          { name: "4×4 Hill Running", level: 2 },
+          { name: "4×4 Weighted Vest", level: 3, equipment: ["vest"] },
+          { name: "4×2 (shorter — build up)", level: 0 },
+        ],
+      },
       { id: "light_pull", name: "Active Bar Work", type: "reps",
         equipment: ["bar"], target: { sets: 3, reps: 10, weight: 0 },
         note: "Submaximal — not to failure. Scapula pulls or light chin-ups.",
@@ -1566,7 +1576,6 @@ function App() {
     </div>
   );
 }
-
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(React.createElement(App));
   </script>
