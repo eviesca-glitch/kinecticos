@@ -10,15 +10,12 @@
   <title>KineticOS</title>
   <script>
     const manifest = {
-      name: "KineticOS", short_name: "KineticOS",
-      description: "Elite calisthenics training tracker",
-      start_url: "./", display: "standalone",
-      background_color: "#0a0a0a", theme_color: "#0a0a0a", orientation: "portrait",
-      icons: [{ src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230a0a0a'/%3E%3Ctext x='256' y='330' font-family='Arial Black,sans-serif' font-size='280' font-weight='900' fill='%234ade80' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E", sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }]
+      name:"KineticOS",short_name:"KineticOS",description:"Elite calisthenics training tracker",
+      start_url:"./",display:"standalone",background_color:"#0a0a0a",theme_color:"#0a0a0a",orientation:"portrait",
+      icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230a0a0a'/%3E%3Ctext x='256' y='330' font-family='Arial Black,sans-serif' font-size='280' font-weight='900' fill='%234ade80' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E",sizes:"512x512",type:"image/svg+xml",purpose:"any maskable"}]
     };
-    const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
-    const link = document.createElement('link');
-    link.rel = 'manifest'; link.href = URL.createObjectURL(blob);
+    const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+    const link=document.createElement('link');link.rel='manifest';link.href=URL.createObjectURL(blob);
     document.currentScript.parentNode.appendChild(link);
   </script>
   <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230a0a0a'/%3E%3Ctext x='256' y='330' font-family='Arial Black,sans-serif' font-size='280' font-weight='900' fill='%234ade80' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E" />
@@ -369,7 +366,7 @@ const EQUIP_COLORS = {
 // ─── ATOMS ────────────────────────────────────────────────────────────────────
 
 function Label({ children, style }) {
-  return <div style={{ color:"#555", fontSize:11, letterSpacing:2, marginBottom:8, fontWeight:600, ...style }}>{children}</div>;
+  return <div style={{ color:"#888", fontSize:11, letterSpacing:2, marginBottom:8, fontWeight:600, ...style }}>{children}</div>;
 }
 
 function Card({ label, children }) {
@@ -546,13 +543,13 @@ function SetLogger({ exercise, sets, onUpdate, accent }) {
 
             {exercise.type === "time" ? (
               <div>
-                <Label>SECONDS{tSecs > 0 ? <span style={{color:"#333",fontWeight:400}}> / {tSecs}s target</span> : ""}</Label>
+                <Label>SECONDS{tSecs > 0 ? <span style={{color:"#777",fontWeight:400}}> / {tSecs}s target</span> : ""}</Label>
                 <Stepper value={s.seconds} onChange={v => upd(i,"seconds",v)} step={1} accent={accent} wide />
               </div>
             ) : (
               <div style={{ display:"flex", gap:10 }}>
                 <div style={{ flex: hasWeight ? 1 : "unset", minWidth: hasWeight ? 0 : 160 }}>
-                  <Label>REPS{tReps > 0 ? <span style={{color:"#333",fontWeight:400}}> / {tReps}</span> : ""}</Label>
+                  <Label>REPS{tReps > 0 ? <span style={{color:"#777",fontWeight:400}}> / {tReps}</span> : ""}</Label>
                   <Stepper value={s.reps} onChange={v => upd(i,"reps",v)} step={1} accent={accent} wide />
                 </div>
                 {hasWeight && (
@@ -920,7 +917,7 @@ function ExerciseCard({ ex, sets, onUpdate, accent, prMap, customTargets, onSave
         }} />
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ color:"#fff", fontSize:15, fontWeight:700, lineHeight:1.25 }}>{displayName}</div>
-          <div style={{ color:"#555", fontSize:12, marginTop:3 }}>
+          <div style={{ color:"#999", fontSize:12, marginTop:3 }}>
             {ex.type === "time"
               ? `${effectiveTarget.sets} sets · ${effectiveTarget.seconds}s each`
               : `${effectiveTarget.sets} sets · ${effectiveTarget.reps} reps${(effectiveTarget.weight??0)>0?` · ${effectiveTarget.weight}kg`:""}`}
@@ -935,7 +932,7 @@ function ExerciseCard({ ex, sets, onUpdate, accent, prMap, customTargets, onSave
         </div>
         <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6, flexShrink:0 }}>
           {isPR && <span style={{ background:"#fbbf24", color:"#000", fontSize:10, fontWeight:900, padding:"2px 7px", borderRadius:6, letterSpacing:0.8 }}>PR</span>}
-          <span style={{ color:"#333", fontSize:13 }}>{open ? "▲" : "▼"}</span>
+          <span style={{ color:"#666", fontSize:13 }}>{open ? "▲" : "▼"}</span>
         </div>
       </button>
 
@@ -983,7 +980,7 @@ function ExerciseCard({ ex, sets, onUpdate, accent, prMap, customTargets, onSave
               display:"flex", alignItems:"center", justifyContent:"space-between"
             }}>
               <span style={{ color:accent, fontSize:12, letterSpacing:1, fontWeight:700 }}>SWITCH VARIATION</span>
-              <span style={{ color:"#444", fontSize:12 }}>{showVars ? "▲" : "▼"}</span>
+              <span style={{ color:"#777", fontSize:12 }}>{showVars ? "▲" : "▼"}</span>
             </button>
           )}
           {showVars && (
@@ -1108,7 +1105,7 @@ function WorkoutView({ workoutLog, setWorkoutLog, prMap, customTargets, onSaveTa
           <span style={{ fontSize:36, color:plan.accent, lineHeight:1 }}>{plan.icon}</span>
           <div style={{ flex:1 }}>
             <div style={{ fontSize:24, fontWeight:900, letterSpacing:-0.5 }}>{plan.label}</div>
-            <div style={{ fontSize:11, color:"#444", letterSpacing:1.5, marginTop:2 }}>
+            <div style={{ fontSize:11, color:"#888", letterSpacing:1.5, marginTop:2 }}>
               {day === "Friday" ? plan.modes[fridayMode].label : "TEMPLATE · MIX FREELY"}
             </div>
           </div>
@@ -1118,7 +1115,7 @@ function WorkoutView({ workoutLog, setWorkoutLog, prMap, customTargets, onSaveTa
               borderRadius:10, padding:"6px 12px", textAlign:"center", minWidth:56
             }}>
               <div style={{ fontSize:18, fontWeight:900, color:plan.accent, lineHeight:1 }}>{completedCount}/{exercises.length}</div>
-              <div style={{ fontSize:9, color:"#555", letterSpacing:1, marginTop:2 }}>DONE</div>
+              <div style={{ fontSize:9, color:"#888", letterSpacing:1, marginTop:2 }}>DONE</div>
             </div>
           )}
         </div>
@@ -1178,12 +1175,12 @@ function RecoveryView({ recoveryLog, setRecoveryLog }) {
 
       <Card label="MUSCLE SORENESS">
         <RatingDots value={entry.soreness} onChange={v => up("soreness",v)} color="#fb7185" />
-        <div style={{ color:"#666", fontSize:12, marginTop:8 }}>{entry.soreness}/10</div>
+        <div style={{ color:"#aaa", fontSize:12, marginTop:8 }}>{entry.soreness}/10</div>
       </Card>
 
       <Card label="SLEEP QUALITY">
         <RatingDots value={entry.sleep} onChange={v => up("sleep",v)} color="#38bdf8" />
-        <div style={{ color:"#666", fontSize:12, marginTop:8 }}>{entry.sleep}/10</div>
+        <div style={{ color:"#aaa", fontSize:12, marginTop:8 }}>{entry.sleep}/10</div>
       </Card>
 
       <Card label="GRIP FATIGUE">
@@ -1245,7 +1242,7 @@ function MiniChart({ title, data, color, unit }) {
                 background: isLast ? color : `${color}44`,
                 height:`${barH}px`, transition:"height 0.35s ease"
               }} />
-              <div style={{ fontSize:9, color:"#333", whiteSpace:"nowrap" }}>{label}</div>
+              <div style={{ fontSize:9, color:"#666", whiteSpace:"nowrap" }}>{label}</div>
             </div>
           );
         })}
@@ -1254,189 +1251,470 @@ function MiniChart({ title, data, color, unit }) {
   );
 }
 
-// ─── PROGRESSIVE OVERLOAD ENGINE ─────────────────────────────────────────────
+// ─── SKILL LADDERS ────────────────────────────────────────────────────────────
+// Each skill has a defined progression path with criteria.
+// The engine tracks where you are and what's blocking the next step.
+
+const SKILL_LADDERS = {
+  FRONT_LEVER: {
+    name: "Full Front Lever",
+    icon: "◈",
+    color: "#a78bfa",
+    steps: [
+      { id: "step_hollow",   label: "Hollow Body Mastery",    criteria: { hollow_hold: { type:"time", secs:30, sets:4 } },
+        coaching: "Foundation of every lever. Lower back must stay glued to floor for 4×30s before progressing." },
+      { id: "step_tuck_fl",  label: "Tuck FL Hold",           criteria: { tuck_fl: { type:"time", secs:10, sets:4 } },
+        coaching: "Pull shoulder blades hard together and down. Body horizontal, chin tucked. 4×10s on rings." },
+      { id: "step_fl_raises",label: "FL Raises",              criteria: { fl_raises: { type:"reps", reps:6, sets:4 } },
+        coaching: "Explosive pull from dead hang to FL position. Eccentric control down. This builds the dynamic strength holds require." },
+      { id: "step_oneleg",   label: "One-Leg FL Hold",        criteria: { oneleg_fl: { type:"time", secs:8, sets:5 } },
+        coaching: "One leg extended, one tucked. Equal time each side. This is the bridge to straddle." },
+      { id: "step_adv_tuck", label: "Advanced Tuck FL",       criteria: { tuck_fl: { type:"time", secs:8, sets:4 } },
+        coaching: "Hips level with shoulders, back flat — not rounded. This is the hardest tuck variation." },
+      { id: "step_straddle", label: "Straddle FL",            criteria: { tuck_fl: { type:"time", secs:5, sets:3 } },
+        coaching: "Legs wide apart. Keep the posterior chain tension. 3×5s on rings." },
+      { id: "step_full_fl",  label: "Full Front Lever",       criteria: { fl_raises: { type:"reps", reps:8, sets:4 } },
+        coaching: "Full FL: body straight, arms straight, horizontal to floor. You've built the foundation." },
+    ]
+  },
+  FREESTANDING_HSPU: {
+    name: "Freestanding HSPU",
+    icon: "↓",
+    color: "#f97316",
+    steps: [
+      { id: "step_pike",     label: "Pike Push-Up Mastery",   criteria: { hspu_neg: { type:"reps", reps:5, sets:3 } },
+        coaching: "4×10 elevated pike push-ups before moving to negatives. Straight-arm lockout at top." },
+      { id: "step_neg",      label: "HSPU Negatives (5s)",    criteria: { hspu_neg: { type:"reps", reps:5, sets:3 } },
+        coaching: "Wall-supported. Full 5s descent, controlled. Build shoulder mass and body awareness inverted." },
+      { id: "step_wall_hspu",label: "Wall-Supported HSPU",    criteria: { hspu_neg: { type:"reps", reps:3, sets:3 } },
+        coaching: "3 full HSPUs wall-supported. Head touches floor. This proves pressing strength." },
+      { id: "step_lsit_link",label: "L-Sit + Planche Lean",  criteria: { lsit: { type:"time", secs:20, sets:4 }, planche_lean: { type:"time", secs:15, sets:4 } },
+        coaching: "Both must be solid together. L-Sit builds the core compression; planche lean builds the wrist/shoulder angle for freestanding." },
+      { id: "step_tuck_planche", label: "Tuck Planche Hold", criteria: { planche_lean: { type:"time", secs:10, sets:4 } },
+        coaching: "Tuck planche shares the exact shoulder protraction needed for freestanding HSPU balance." },
+      { id: "step_free_hspu",label: "Freestanding HSPU",     criteria: { hspu_neg: { type:"reps", reps:5, sets:3 } },
+        coaching: "The goal. Wall used only as emergency bail. Straight body, full lockout." },
+    ]
+  },
+  PULL_MASTERY: {
+    name: "Elite Pull Strength",
+    icon: "↑",
+    color: "#4ade80",
+    steps: [
+      { id: "step_pullups",  label: "4×10 Pull-Ups",         criteria: { wg_pullups: { type:"reps", reps:10, sets:4 } },
+        coaching: "Full dead hang each rep. No kipping. Scapula engaged at the bottom." },
+      { id: "step_weighted", label: "Weighted Pull-Ups",     criteria: { wg_pullups: { type:"reps", reps:8, sets:4 } },
+        coaching: "Add 5–10kg vest. Weighted pulling builds the tendon strength required for one-arm work." },
+      { id: "step_archer",   label: "Archer Pull-Ups",       criteria: { wg_pullups: { type:"reps", reps:6, sets:4 } },
+        coaching: "One arm assists, one arm leads. Alternating. Direct path to one-arm pull-up." },
+      { id: "step_rings_pu", label: "Ring Pull-Ups",         criteria: { ring_rows: { type:"reps", reps:10, sets:3 } },
+        coaching: "Unstable surface. Turn rings out at the top. Builds the joint integrity for FL and one-arm work." },
+      { id: "step_onearm_neg","label": "One-Arm Negatives", criteria: { wg_pullups: { type:"reps", reps:5, sets:3 } },
+        coaching: "Slow 5s descent on one arm. Other hand on wrist only. The hardest calisthenics pulling skill." },
+    ]
+  }
+};
+
+// ─── COACH ENGINE ─────────────────────────────────────────────────────────────
 
 function analyzeProgress(workoutLog, customTargets = {}) {
   const insights = [];
   const today = new Date();
 
-  // For each exercise that has been logged at least twice
-  const exSessions = {}; // exId -> [{date, sets}]
-  const sortedDates = Object.keys(workoutLog).sort();
-
-  for (const dt of sortedDates) {
+  // Build session map: exId -> [{date, sets}]
+  const exSessions = {};
+  for (const dt of Object.keys(workoutLog).sort()) {
     const dayData = workoutLog[dt];
     if (!dayData || typeof dayData !== "object") continue;
     for (const [exId, sets] of Object.entries(dayData)) {
       if (!Array.isArray(sets) || !sets.length) continue;
-      const meaningful = sets.filter(s =>
-        (s.reps ?? 0) > 0 || (s.seconds ?? 0) > 0
-      );
+      const meaningful = sets.filter(s => (s.reps ?? 0) > 0 || (s.seconds ?? 0) > 0);
       if (!meaningful.length) continue;
       if (!exSessions[exId]) exSessions[exId] = [];
       exSessions[exId].push({ date: dt, sets: meaningful });
     }
   }
 
+  // Helper: get best value for exercise across sessions
+  const getBest = (exId, type) => {
+    const s = exSessions[exId];
+    if (!s?.length) return 0;
+    return Math.max(...s.flatMap(sess => sess.sets.map(set => type === "reps" ? (set.reps ?? 0) : (set.seconds ?? 0))));
+  };
+
+  // Helper: did last N sessions consistently hit target?
+  const hitConsistently = (exId, type, target, targetSets, n = 2, windowDays = 14) => {
+    const s = exSessions[exId];
+    if (!s?.length) return false;
+    const cutoff = new Date(today);
+    cutoff.setDate(cutoff.getDate() - windowDays);
+    const cutoffStr = cutoff.toISOString().split("T")[0];
+    const recent = s.filter(sess => sess.date >= cutoffStr).slice(-n);
+    if (recent.length < n) return false;
+    return recent.every(sess =>
+      sess.sets.length >= Math.max(targetSets - 1, 1) &&
+      sess.sets.every(set => (type === "reps" ? (set.reps ?? 0) : (set.seconds ?? 0)) >= target)
+    );
+  };
+
+  // Helper: plateau check
+  const isPlateaued = (exId, type, windowDays = 21) => {
+    const s = exSessions[exId];
+    if (!s || s.length < 3) return false;
+    const allBest = getBest(exId, type);
+    const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - windowDays);
+    const cutoffStr = cutoff.toISOString().split("T")[0];
+    const recentBest = Math.max(...s.filter(sess => sess.date >= cutoffStr).flatMap(sess => sess.sets.map(set => type === "reps" ? (set.reps ?? 0) : (set.seconds ?? 0))), 0);
+    return allBest > 0 && recentBest < allBest * 0.95;
+  };
+
+  // Helper: regression check
+  const isRegressing = (exId, type) => {
+    const s = exSessions[exId];
+    if (!s || s.length < 3) return false;
+    const allBest = getBest(exId, type);
+    const last = s[s.length - 1];
+    const lastAvg = last.sets.reduce((a,set) => a + (type === "reps" ? (set.reps ?? 0) : (set.seconds ?? 0)), 0) / last.sets.length;
+    return allBest > 0 && lastAvg < allBest * 0.8;
+  };
+
+  // ── SKILL LADDER ANALYSIS ──────────────────────────────────────────────────
+  // For each skill ladder, find current step and generate a milestone insight
+
+  for (const [skillKey, skill] of Object.entries(SKILL_LADDERS)) {
+    let currentStepIdx = 0;
+    let completedSteps = 0;
+
+    for (let i = 0; i < skill.steps.length; i++) {
+      const step = skill.steps[i];
+      const criteriaKeys = Object.keys(step.criteria);
+      const allMet = criteriaKeys.every(exId => {
+        const c = step.criteria[exId];
+        const eff = { ...ALL_EXERCISES.find(e=>e.id===exId)?.target, ...(customTargets[exId]??{}) };
+        const t = c.type === "reps" ? (c.reps ?? eff.reps ?? 0) : (c.secs ?? eff.seconds ?? 0);
+        return hitConsistently(exId, c.type, t, c.sets ?? 3);
+      });
+      if (allMet) { completedSteps = i + 1; currentStepIdx = i + 1; }
+    }
+
+    if (currentStepIdx < skill.steps.length) {
+      const nextStep = skill.steps[currentStepIdx];
+      const criteriaKeys = Object.keys(nextStep.criteria);
+      const progress = criteriaKeys.map(exId => {
+        const c = nextStep.criteria[exId];
+        const best = getBest(exId, c.type);
+        const target = c.type === "reps" ? (c.reps ?? 0) : (c.secs ?? 0);
+        return { exId, best, target, type: c.type };
+      });
+      const allHaveData = progress.every(p => p.best > 0);
+      const closestPct = progress.length ? Math.min(...progress.map(p => p.target > 0 ? Math.round((p.best/p.target)*100) : 0)) : 0;
+
+      // Only surface skill insight if user has logged relevant exercises
+      if (allHaveData || exSessions[criteriaKeys[0]]) {
+        insights.push({
+          type: "skill",
+          skillName: skill.name,
+          skillIcon: skill.icon,
+          stepLabel: nextStep.label,
+          stepNum: currentStepIdx + 1,
+          totalSteps: skill.steps.length,
+          completedSteps,
+          coaching: nextStep.coaching,
+          color: skill.color,
+          progressPct: Math.min(closestPct, 99),
+          criteriaDetail: progress.map(p =>
+            `${ALL_EXERCISES.find(e=>e.id===p.exId)?.name ?? p.exId}: ${p.type==="reps"?`${p.best}/${p.target} reps`:`${p.best}/${p.target}s`}`
+          ).join(" · ")
+        });
+      }
+    } else {
+      // Skill completed
+      insights.push({
+        type: "skill_complete",
+        skillName: skill.name,
+        skillIcon: skill.icon,
+        color: skill.color,
+        coaching: `${skill.name} achieved. Maintain with 1–2 sessions/week while building the next skill.`
+      });
+    }
+  }
+
+  // ── CROSS-EXERCISE IMBALANCE DETECTION ────────────────────────────────────
+  // Push vs Pull volume balance
+  const pullExIds = ["wg_pullups","ring_rows","ring_rows_fl","fl_raises"];
+  const pushExIds = ["pushups","dips","hspu_neg","planche_lean"];
+  const pullSessions = pullExIds.reduce((a,id) => a + (exSessions[id]?.length ?? 0), 0);
+  const pushSessions = pushExIds.reduce((a,id) => a + (exSessions[id]?.length ?? 0), 0);
+  if (pullSessions > 3 && pushSessions > 3) {
+    const ratio = pullSessions / pushSessions;
+    if (ratio > 1.8) {
+      insights.push({ type:"imbalance", color:"#fbbf24",
+        message:"Push volume lagging behind pull",
+        action:"Shoulder health and HSPU progress require balanced push:pull. Add a push session this week."
+      });
+    } else if (ratio < 0.6) {
+      insights.push({ type:"imbalance", color:"#fbbf24",
+        message:"Pull volume lagging behind push",
+        action:"Front lever requires more pull volume. Prioritize FL day and ring rows this week."
+      });
+    }
+  }
+
+  // FL prerequisites: hollow hold must be solid before FL holds
+  const hollowBest = getBest("hollow_hold", "time");
+  const flBest = getBest("tuck_fl", "time");
+  if (flBest > 0 && hollowBest < 20) {
+    insights.push({ type:"prereq", color:"#fb7185",
+      message:"Hollow hold needs work before FL progresses",
+      action:"Your FL hold is limited by hollow body weakness. Hit 4×30s hollow hold first — it's the foundation of every lever."
+    });
+  }
+
+  // Scapula/hang before FL
+  const hangBest = getBest("dead_hang", "time");
+  if (flBest > 0 && hangBest < 30) {
+    insights.push({ type:"prereq", color:"#fbbf24",
+      message:"Dead hang endurance limiting FL progress",
+      action:"Can't hold the FL if your hang fails first. Build to 3×45s active hang with scapula fully retracted."
+    });
+  }
+
+  // L-Sit before planche / HSPU
+  const lsitBest = getBest("lsit", "time");
+  const plancheBest = getBest("planche_lean", "time");
+  if (plancheBest > 10 && lsitBest < 10) {
+    insights.push({ type:"prereq", color:"#fbbf24",
+      message:"L-Sit needs to match your planche lean",
+      action:"Planche and freestanding HSPU both need strong core compression. L-Sit must reach 4×20s."
+    });
+  }
+
+  // ── PER-EXERCISE PROGRESS / PLATEAU / REGRESSION ──────────────────────────
   for (const [exId, sessions] of Object.entries(exSessions)) {
     if (sessions.length < 2) continue;
     const ex = ALL_EXERCISES.find(e => e.id === exId);
     if (!ex) continue;
-
-    // Merge custom target over default
     const effectiveTarget = { ...ex.target, ...(customTargets[exId] ?? {}) };
     const tReps = effectiveTarget.reps ?? 0;
     const tSecs = effectiveTarget.seconds ?? 0;
     const tSets = effectiveTarget.sets ?? 0;
-    const hasVariations = (ex.variations?.length ?? 0) > 0;
-
-    // Last 14 days sessions only
-    const cutoff = new Date(today);
-    cutoff.setDate(cutoff.getDate() - 14);
-    const cutoffStr = cutoff.toISOString().split("T")[0];
-    const recentSessions = sessions.filter(s => s.date >= cutoffStr);
-
-    // Last 21 days for plateau check
-    const cutoff21 = new Date(today);
-    cutoff21.setDate(cutoff21.getDate() - 21);
-    const cutoff21Str = cutoff21.toISOString().split("T")[0];
-    const recentSessions21 = sessions.filter(s => s.date >= cutoff21Str);
 
     if (ex.type === "reps" && tReps > 0) {
-      // Best rep set across all time
-      const allTimeBest = Math.max(...sessions.flatMap(s => s.sets.map(set => set.reps ?? 0)));
-      // Best in last 21 days
-      const recent21Best = recentSessions21.length
-        ? Math.max(...recentSessions21.flatMap(s => s.sets.map(set => set.reps ?? 0)))
-        : 0;
-      // Recent 2 sessions — did ALL sets hit target?
-      const last2 = recentSessions.slice(-2);
-      const last2AllHit = last2.length === 2 && last2.every(session =>
-        session.sets.length >= Math.max(tSets - 1, 1) &&
-        session.sets.every(s => (s.reps ?? 0) >= tReps)
-      );
-      // Plateau: 3+ sessions, no improvement in 21 days vs all-time
-      const plateau = recentSessions21.length >= 3 &&
-        allTimeBest > 0 &&
-        recent21Best < allTimeBest * 0.95;
-      // Regression: last session average is 20%+ below all-time best
-      const lastSession = sessions[sessions.length - 1];
-      const lastAvg = lastSession.sets.reduce((a,s)=>a+(s.reps??0),0) / lastSession.sets.length;
-      const regression = allTimeBest > 0 && sessions.length >= 3 && lastAvg < allTimeBest * 0.8;
+      const allBest = getBest(exId, "reps");
+      const ready = hitConsistently(exId, "reps", tReps, tSets);
+      const plateaued = isPlateaued(exId, "reps");
+      const regressing = isRegressing(exId, "reps");
 
-      if (last2AllHit) {
-        const nextVar = hasVariations
-          ? ex.variations.find(v => v.level > (ex.variations.find(vv => vv.name.toLowerCase().includes(ex.name.toLowerCase().split(" ")[0]?.toLowerCase() ?? ""))?.level ?? 0))
-          : null;
+      // Only push 1 type per exercise — priority: ready > plateau > regression
+      if (ready) {
+        const nextSteps = {
+          wg_pullups:    `4×${tReps} consistent. Add 2.5kg vest next session. Path: weighted → archer → one-arm negatives.`,
+          ring_rows:     `Elevate feet higher or go body-horizontal. Direct FL horizontal pulling strength.`,
+          ttb:           `Progress to Windshield Wipers. Core rotational strength essential for full FL control.`,
+          ring_curl:     `Increase body angle. FL puts massive load on bicep tendons — build this progressively.`,
+          pushups:       `Move to Archer Push-Ups. One side assists while the other leads — path to one-arm push-up.`,
+          dips:          `Progress to straight-body ring dips with rings turned out. Tricep and shoulder lockout strength.`,
+          hspu_neg:      `Slow to 6s descent. When 5×5 at 6s, attempt your first full wall HSPU. Goal: freestanding.`,
+          planche_lean:  `Hold lean for 20s, then attempt Tuck Planche. Tuck planche = same shoulder angle as freestanding HSPU.`,
+          lsit:          `Progress to parallettes. Then work toward V-Sit — that's elite core compression.`,
+          fl_raises:     `Go to 8 reps or progress to One-Leg FL Raises. Explosive FL strength is what unlocks holds.`,
+          ring_rows_fl:  `Achieve full body-horizontal FL-grip row. This IS the pulling pattern of the front lever.`,
+          sprints:       `Progress to hill sprints or add weighted vest. VO2max directly extends FL hold endurance.`,
+          vo2max_4x4:    `Add a 5th interval. Elite VO2max is your aerobic base for all calisthenics skills.`,
+          core_circuit:  `Add Dragon Flag negatives. Closest floor movement to FL — full body tension from fingertips to toes.`,
+          tuck_fl:       `Progress: Advanced Tuck → One-Leg FL → Straddle → Full FL. You're moving.`,
+          oneleg_fl:     `Progress to Straddle FL. Legs wide, hips level, body horizontal. One step from the goal.`,
+          hollow_hold:   `Progress to Hollow Body Rock. Rocking hollow trains the body line needed in FL and HSPU.`,
+          pistol_squat:  `Add weighted vest pistols. Posterior chain strength directly supports FL body tension.`,
+          nordic_curl:   `Progress to full Nordic Curls. Strongest hamstring builder in calisthenics — critical for FL.`,
+          shrimp_squat:  `Progress to floating shrimp. Single-leg strength baseline for complete calisthenics athlete.`,
+          jump_lunges:   `Add vest. Explosive leg power is the foundation for full-body calisthenics athleticism.`,
+          barbell_squat: `Add 5kg. Leg strength drives posterior chain tension — essential for maintaining FL position.`,
+          rdl:           `Add 5kg. Hamstring strength is the anchor point for the entire FL body line.`,
+          light_pull:    `Add a set. Submaximal volume builds the tendon resilience needed for heavy FL work.`,
+        };
         insights.push({
-          type: "progress",
-          exId, exName: ex.name,
-          message: `Consistently hitting ${tReps} reps across 2 sessions.`,
-          action: hasVariations ? `Ready to progress — try the next variation` : `Add 1–2 reps or introduce the weighted vest`,
-          color: "#4ade80"
+          type:"progress", exId, exName: ex.name,
+          message:`${tSets}×${tReps} consistent across 2 sessions.`,
+          action: nextSteps[exId] ?? `Progress to the next variation — you've earned it`,
+          color:"#4ade80"
         });
-      } else if (plateau) {
+      } else if (plateaued) {
+        const plateauFixes = {
+          wg_pullups:   `Try rest-pause sets: hit failure, rest 15s, continue. Breaks neural adaptation.`,
+          hspu_neg:     `Slow the negative to 6s. Speed was masking weakness. Rebuild with control.`,
+          tuck_fl:      `Add FL Raises volume — 5×5 explosive reps. Holds improve through dynamic strength.`,
+          fl_raises:    `Drop to 3 reps, add 1kg vest. New stimulus breaks the plateau.`,
+          planche_lean: `Add 2s to each hold. Small increments. Planche is a months-long adaptation.`,
+          lsit:         `Try parallettes instead of floor. Better wrist position unlocks more time.`,
+        };
         insights.push({
-          type: "plateau",
-          exId, exName: ex.name,
-          message: `No improvement in 3+ weeks (best: ${allTimeBest} reps).`,
-          action: hasVariations ? `Switch variation or reduce rest periods` : `Try a deload set this week`,
-          color: "#fbbf24"
+          type:"plateau", exId, exName: ex.name,
+          message:`Stalled at ${allBest} reps — no improvement in 3 weeks.`,
+          action: plateauFixes[exId] ?? `Deload this exercise for 5 days, then come back with reduced volume and reset targets`,
+          color:"#fbbf24"
         });
-      } else if (regression) {
+      } else if (regressing) {
         insights.push({
-          type: "regression",
-          exId, exName: ex.name,
-          message: `Recent performance below your best (${allTimeBest} reps).`,
-          action: `Check recovery — soreness or sleep may be limiting output`,
-          color: "#fb7185"
+          type:"regression", exId, exName: ex.name,
+          message:`Performance dropping — recent sets below your ${allBest}-rep best.`,
+          action:`Check your RECOVER tab. Grip fatigue and shoulder status are the two biggest FL/pull limiters. Consider a 3-day deload.`,
+          color:"#fb7185"
         });
       }
     }
 
     if (ex.type === "time" && tSecs > 0) {
-      const allTimeBest = Math.max(...sessions.flatMap(s => s.sets.map(set => set.seconds ?? 0)));
-      const recent21Best = recentSessions21.length
-        ? Math.max(...recentSessions21.flatMap(s => s.sets.map(set => set.seconds ?? 0)))
-        : 0;
-      const last2 = recentSessions.slice(-2);
-      const last2AllHit = last2.length === 2 && last2.every(session =>
-        session.sets.length >= Math.max(tSets - 1, 1) &&
-        session.sets.every(s => (s.seconds ?? 0) >= tSecs)
-      );
-      const plateau = recentSessions21.length >= 3 &&
-        allTimeBest > 0 &&
-        recent21Best < allTimeBest * 0.95;
-      const lastSession = sessions[sessions.length - 1];
-      const lastAvg = lastSession.sets.reduce((a,s)=>a+(s.seconds??0),0) / lastSession.sets.length;
-      const regression = allTimeBest > 0 && sessions.length >= 3 && lastAvg < allTimeBest * 0.8;
+      const allBest = getBest(exId, "time");
+      const ready = hitConsistently(exId, "time", tSecs, tSets);
+      const plateaued = isPlateaued(exId, "time");
+      const regressing = isRegressing(exId, "time");
 
-      if (last2AllHit) {
+      if (ready) {
+        const timeNextSteps = {
+          tuck_fl:      `Extend target by 3s OR progress to Advanced Tuck FL. Keep shoulder blades retracted and down throughout.`,
+          oneleg_fl:    `Progress to Straddle FL. Legs wide, body rigid. One step from full front lever.`,
+          hollow_hold:  `Add Hollow Body Rocks: 3s hold → rock → 3s hold. Trains the body line dynamically.`,
+          dead_hang:    `Switch to Active Hang with scapula fully pulled down and back — this IS the FL starting position.`,
+          planche_lean: `Progress to Tuck Planche. Round upper back, protract hard, lean until feet lift. This is the path to freestanding HSPU.`,
+          lsit:         `Progress to parallettes L-Sit, then work toward V-Sit. V-Sit is elite core compression.`,
+          core_circuit: `Add Dragon Flag negatives. Full-body tension from fingertips to toes — the closest floor FL simulation.`,
+          cardio_pull:  `Add 2 minutes or increase intensity.`,
+          swim_laps:    `Add 5 minutes or introduce tethered sprint intervals.`,
+        };
         insights.push({
-          type: "progress",
-          exId, exName: ex.name,
-          message: `Hitting ${tSecs}s target consistently across 2 sessions.`,
-          action: hasVariations ? `Ready for the next variation` : `Increase hold target by 5s`,
-          color: "#4ade80"
+          type:"progress", exId, exName: ex.name,
+          message:`${tSets}×${tSecs}s consistent across 2 sessions.`,
+          action: timeNextSteps[exId] ?? `Increase hold target by 3–5s`,
+          color:"#4ade80"
         });
-      } else if (plateau) {
+      } else if (plateaued) {
         insights.push({
-          type: "plateau",
-          exId, exName: ex.name,
-          message: `Hold time stalled — best ${allTimeBest}s, no improvement in 3 weeks.`,
-          action: `Add more FL Raises for strength, or extend rest between holds`,
-          color: "#fbbf24"
+          type:"plateau", exId, exName: ex.name,
+          message:`Hold time stalled at ${allBest}s — no improvement in 3 weeks.`,
+          action: exId.includes("fl") ?
+            `Increase FL Raises to 5×6. Dynamic strength always unlocks hold plateaus. Come back to holds after 2 weeks.` :
+            `Reduce rest to 90s between sets. Shorter rest = more time under tension = faster adaptation.`,
+          color:"#fbbf24"
         });
-      } else if (regression) {
+      } else if (regressing) {
         insights.push({
-          type: "regression",
-          exId, exName: ex.name,
-          message: `Hold times dropping (best: ${allTimeBest}s).`,
-          action: `Prioritize recovery — grip and shoulder fatigue are likely factors`,
-          color: "#fb7185"
+          type:"regression", exId, exName: ex.name,
+          message:`Hold times dropping — best was ${allBest}s.`,
+          action:`Grip and shoulder fatigue are the primary FL limiters. Check RECOVER tab. Take 3 days off pulling before next FL session.`,
+          color:"#fb7185"
         });
       }
     }
   }
 
-  // Sort: progress first, then plateau, then regression
-  const order = { progress: 0, plateau: 1, regression: 2 };
-  insights.sort((a,b) => order[a.type] - order[b.type]);
+  // ── SORT: skill ladders first, then prereqs, then imbalance, then per-exercise ──
+  const order = { skill:0, skill_complete:1, prereq:2, imbalance:3, progress:4, plateau:5, regression:6 };
+  insights.sort((a,b) => (order[a.type]??9) - (order[b.type]??9));
   return insights;
 }
 
 function InsightCard({ insight }) {
-  const icons = { progress: "▲", plateau: "◆", regression: "▼" };
-  const labels = { progress: "PROGRESS READY", plateau: "PLATEAU", regression: "REGRESSION" };
+  // Skill ladder card
+  if (insight.type === "skill" || insight.type === "skill_complete") {
+    const done = insight.type === "skill_complete";
+    return (
+      <div style={{
+        background:`${insight.color}0e`, border:`1px solid ${insight.color}55`,
+        borderRadius:14, padding:14, marginBottom:10
+      }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+          <div style={{
+            width:32, height:32, borderRadius:"50%", flexShrink:0,
+            background:`${insight.color}22`, border:`1.5px solid ${insight.color}88`,
+            display:"flex", alignItems:"center", justifyContent:"center",
+            fontSize:14, color:insight.color, fontWeight:900
+          }}>{insight.skillIcon}</div>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:10, color:insight.color, fontWeight:800, letterSpacing:1.5 }}>
+              {done ? "SKILL ACHIEVED" : `SKILL LADDER · STEP ${insight.stepNum}/${insight.totalSteps}`}
+            </div>
+            <div style={{ fontSize:14, color:"#fff", fontWeight:800, marginTop:1 }}>
+              {insight.skillName}
+            </div>
+          </div>
+          {!done && (
+            <div style={{
+              background:`${insight.color}22`, borderRadius:8,
+              padding:"4px 10px", fontSize:12, color:insight.color, fontWeight:800
+            }}>{insight.progressPct}%</div>
+          )}
+        </div>
+        {!done && (
+          <div style={{ marginBottom:10 }}>
+            <div style={{ display:"flex", gap:3, marginBottom:8 }}>
+              {Array.from({length: insight.totalSteps}, (_,i) => (
+                <div key={i} style={{
+                  flex:1, height:3, borderRadius:3,
+                  background: i < insight.completedSteps ? insight.color : `${insight.color}33`
+                }} />
+              ))}
+            </div>
+            <div style={{ fontSize:11, color:insight.color, fontWeight:700 }}>
+              Next: {insight.stepLabel}
+            </div>
+          </div>
+        )}
+        <div style={{ fontSize:12, color:"#aaa", lineHeight:1.6, marginBottom: insight.criteriaDetail ? 8 : 0 }}>
+          {insight.coaching}
+        </div>
+        {insight.criteriaDetail && (
+          <div style={{ fontSize:11, color:`${insight.color}99`, lineHeight:1.5,
+            paddingTop:8, borderTop:`1px solid ${insight.color}22` }}>
+            {insight.criteriaDetail}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (insight.type === "prereq" || insight.type === "imbalance") {
+    return (
+      <div style={{
+        background:`${insight.color}0d`, border:`1px solid ${insight.color}44`,
+        borderRadius:14, padding:14, marginBottom:10
+      }}>
+        <div style={{ fontSize:10, color:insight.color, fontWeight:800, letterSpacing:1.5, marginBottom:6 }}>
+          {insight.type === "prereq" ? "⚠ PREREQUISITE MISSING" : "⚡ IMBALANCE DETECTED"}
+        </div>
+        <div style={{ fontSize:13, color:"#fff", fontWeight:700, marginBottom:8 }}>{insight.message}</div>
+        <div style={{ fontSize:12, color:"#aaa", lineHeight:1.6,
+          paddingTop:8, borderTop:`1px solid ${insight.color}22` }}>
+          → {insight.action}
+        </div>
+      </div>
+    );
+  }
+
+  const icons = { progress:"▲", plateau:"◆", regression:"▼" };
+  const labels = { progress:"PROGRESS READY", plateau:"PLATEAU DETECTED", regression:"REGRESSION" };
   return (
     <div style={{
-      background:`${insight.color}0d`,
-      border:`1px solid ${insight.color}44`,
+      background:`${insight.color}0d`, border:`1px solid ${insight.color}44`,
       borderRadius:14, padding:14, marginBottom:10
     }}>
       <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
         <div style={{
-          width:26, height:26, borderRadius:"50%",
+          width:26, height:26, borderRadius:"50%", flexShrink:0,
           background:`${insight.color}22`, border:`1px solid ${insight.color}66`,
           display:"flex", alignItems:"center", justifyContent:"center",
-          fontSize:11, color:insight.color, fontWeight:900, flexShrink:0
+          fontSize:11, color:insight.color, fontWeight:900
         }}>{icons[insight.type]}</div>
         <div>
           <div style={{ fontSize:10, color:insight.color, fontWeight:800, letterSpacing:1.5 }}>
             {labels[insight.type]}
           </div>
-          <div style={{ fontSize:13, color:"#fff", fontWeight:700, marginTop:1 }}>
-            {insight.exName}
-          </div>
+          <div style={{ fontSize:13, color:"#fff", fontWeight:700, marginTop:1 }}>{insight.exName}</div>
         </div>
       </div>
-      <div style={{ fontSize:12, color:"#888", lineHeight:1.5, marginBottom:6 }}>
-        {insight.message}
-      </div>
-      <div style={{
-        fontSize:12, color:insight.color, lineHeight:1.5,
-        paddingTop:8, borderTop:`1px solid ${insight.color}22`
-      }}>
+      <div style={{ fontSize:12, color:"#aaa", lineHeight:1.5, marginBottom:6 }}>{insight.message}</div>
+      <div style={{ fontSize:12, color:insight.color, lineHeight:1.5,
+        paddingTop:8, borderTop:`1px solid ${insight.color}22` }}>
         → {insight.action}
       </div>
     </div>
@@ -1498,7 +1776,7 @@ function DashboardView({ workoutLog, prMap, bodyweightLog, customTargets }) {
       <div style={{ marginTop:20 }}>
         <Label>PERSONAL RECORDS</Label>
         {prEntries.length === 0 ? (
-          <div style={{ color:"#333", fontSize:14, padding:"24px 0", textAlign:"center" }}>
+          <div style={{ color:"#666", fontSize:14, padding:"24px 0", textAlign:"center" }}>
             Log your first workout to start tracking PRs
           </div>
         ) : prEntries.map(({ ex, pr }) => (
@@ -1506,7 +1784,7 @@ function DashboardView({ workoutLog, prMap, bodyweightLog, customTargets }) {
             display:"flex", justifyContent:"space-between", alignItems:"center",
             padding:"13px 0", borderBottom:"1px solid #1a1a1a"
           }}>
-            <span style={{ color:"#aaa", fontSize:14 }}>{ex.name}</span>
+            <span style={{ color:"#ccc", fontSize:14 }}>{ex.name}</span>
             <span style={{ color:"#fbbf24", fontWeight:800, fontSize:14 }}>
               {ex.type==="time" ? `${pr.seconds}s` : `${pr.reps} reps${(pr.weight??0)>0?` @${pr.weight}kg`:""}`}
             </span>
