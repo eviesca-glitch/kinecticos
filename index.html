@@ -20,7 +20,7 @@
     const link=document.createElement('link');link.rel='manifest';link.href=URL.createObjectURL(blob);
     document.currentScript.parentNode.appendChild(link);
   </script>
-  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230a0a0a'/%3E%3Ctext x='256' y='330' font-family='Arial Black,sans-serif' font-size='280' font-weight='900' fill='%234ade80' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230a0a0a'/%3E%3Ctext x='256' y='330' font-family='Arial Black,sans-serif' font-size='280' font-weight='900' fill='%234ade80' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E' />
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.23.9/babel.min.js"></script>
@@ -667,7 +667,7 @@ function DropboxSync({ workoutLog, recoveryLog, nutritionLog, bodyweightLog, cus
                        setWorkoutLog, setRecoveryLog, setNutritionLog, setBodyweightLog, setCustomTargets }) {
   const [token, setToken] = useLocalStorage("kineticos_dropbox", "");
   const [showSetup, setShowSetup] = useState(false);
-  const [status, setStatus] = useState("idle"); // idle|syncing|ok|error
+  const [status, setStatus] = useState(() => token ? "ok" : "idle");
   const [lastSync, setLastSync] = useLocalStorage("kineticos_last_sync", null);
   const [msg, setMsg] = useState("");
   const [restoreConfirm, setRestoreConfirm] = useState(false);
