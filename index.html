@@ -11,32 +11,33 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&display=swap" rel="stylesheet" />
   <script>
-    const manifest = {
-      name:"KineticOS",short_name:"KineticOS",description:"Elite calisthenics training tracker",
-      start_url:"./",display:"standalone",background_color:"#0a0a0a",theme_color:"#0a0a0a",orientation:"portrait",
-      icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230a0a0a'/%3E%3Ctext x='256' y='330' font-family='Arial Black,sans-serif' font-size='280' font-weight='900' fill='%234ade80' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E",sizes:"512x512",type:"image/svg+xml",purpose:"any maskable"}]
+    var manifest = {
+      name:"KineticOS",short_name:"KineticOS",
+      start_url:"./",display:"standalone",
+      background_color:"#0a0a0a",theme_color:"#0a0a0a",orientation:"portrait",
+      icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230a0a0a'/%3E%3Ctext x='256' y='330' font-family='Arial Black' font-size='280' font-weight='900' fill='%234ade80' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E",sizes:"512x512",type:"image/svg+xml",purpose:"any maskable"}]
     };
-    const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
-    const link=document.createElement('link');link.rel='manifest';link.href=URL.createObjectURL(blob);
-    document.currentScript.parentNode.appendChild(link);
+    var blob=new Blob([JSON.stringify(manifest)],{type:"application/json"});
+    var mlink=document.createElement("link");
+    mlink.rel="manifest";mlink.href=URL.createObjectURL(blob);
+    document.head.appendChild(mlink);
   </script>
-  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230a0a0a'/%3E%3Ctext x='256' y='330' font-family='Arial Black,sans-serif' font-size='280' font-weight='900' fill='%234ade80' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E' />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230a0a0a'/%3E%3Ctext x='256' y='330' font-family='Arial Black' font-size='280' font-weight='900' fill='%234ade80' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E" />
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.23.9/babel.min.js"></script>
   <style>
-    html, body { margin:0; padding:0; background:#0a0a0a; color:#fff; }
-    #root { min-height:100svh; }
-    *, *::before, *::after { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html,body{margin:0;padding:0;background:#0a0a0a;color:#fff;}
+    #root{min-height:100svh;}
+    *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
     input[type=number]::-webkit-inner-spin-button,
-    input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
-    input[type=number] { -moz-appearance:textfield; }
-    ::-webkit-scrollbar { display:none; }
-    html { scroll-behavior:smooth; }
-    @keyframes slideUp { from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;} }
-    @keyframes spin { to{transform:rotate(360deg);} }
-    .view { animation:slideUp 0.18s ease both; }
-    button, input, textarea { font-family:'DM Mono','Courier New',monospace; }
+    input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+    input[type=number]{-moz-appearance:textfield;}
+    ::-webkit-scrollbar{display:none;}
+    @keyframes slideUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .view{animation:slideUp 0.18s ease both;}
+    button,input,textarea{font-family:"DM Mono","Courier New",monospace;}
   </style>
 </head>
 <body>
