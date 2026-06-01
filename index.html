@@ -8,6 +8,8 @@
   <meta name="apple-mobile-web-app-title" content="KineticOS" />
   <meta name="theme-color" content="#0a0a0a" />
   <title>KineticOS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&display=swap" rel="stylesheet" />
   <script>
     const manifest = {
       name:"KineticOS",short_name:"KineticOS",description:"Elite calisthenics training tracker",
@@ -22,14 +24,27 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.23.9/babel.min.js"></script>
-  <style>html,body{margin:0;padding:0;background:#0a0a0a;}#root{min-height:100svh;}</style>
+  <style>
+    html, body { margin:0; padding:0; background:#0a0a0a; color:#fff; }
+    #root { min-height:100svh; }
+    *, *::before, *::after { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+    input[type=number] { -moz-appearance:textfield; }
+    ::-webkit-scrollbar { display:none; }
+    html { scroll-behavior:smooth; }
+    @keyframes slideUp { from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;} }
+    @keyframes spin { to{transform:rotate(360deg);} }
+    .view { animation:slideUp 0.18s ease both; }
+    button, input, textarea { font-family:'DM Mono','Courier New',monospace; }
+  </style>
 </head>
 <body>
   <div id="root"></div>
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-// ─── DATA ─────────────────────────────────────────────────────────────────────
+// DATA ---------------------------------------------------------------------
 
 const WEEK_SPLIT = {
   Monday: {
@@ -244,7 +259,7 @@ const WEEK_SPLIT = {
     ],
   },
   Friday: {
-    label: "LEGS/SWIM", accent: "#fb7185", icon: "〜", location: "variable",
+    label: "LEGS/SWIM", accent: "#fb7185", icon: "~", location: "variable",
     modes: {
       home: {
         label: "HOME · CALI LEGS",
@@ -374,13 +389,13 @@ function useLocalStorage(key, init) {
   return [val, set];
 }
 
-// ─── DESIGN ───────────────────────────────────────────────────────────────────
+// DESIGN -------------------------------------------------------------------
 const EQUIP_COLORS = {
   bar:"#38bdf8", rings:"#fb7185", parallettes:"#f97316",
   floor:"#666", vest:"#a78bfa", gym:"#fbbf24", pool:"#22d3ee"
 };
 
-// ─── ATOMS ────────────────────────────────────────────────────────────────────
+// ATOMS --------------------------------------------------------------------
 
 function Label({ children, style }) {
   return <div style={{ color:"#888", fontSize:11, letterSpacing:2, marginBottom:8, fontWeight:600, ...style }}>{children}</div>;
@@ -460,7 +475,7 @@ function Stepper({ value, onChange, min=0, step=1, accent, wide=false }) {
       width: wide ? "100%" : "auto"
     }}>
       <button onMouseDown={e => { e.preventDefault(); nudge(-1); }}
-        style={{ width:48, height:52, background:"none", border:"none", color:"#ccc", fontSize:24, cursor:"pointer", flexShrink:0 }}>−</button>
+        style={{ width:48, height:52, background:"none", border:"none", color:"#ccc", fontSize:24, cursor:"pointer", flexShrink:0 }}>-</button>
       <input
         ref={inputRef}
         type="number"
@@ -498,7 +513,7 @@ function Toggle({ value, opts, onChange, colors }) {
   );
 }
 
-// ─── SET LOGGER ───────────────────────────────────────────────────────────────
+// SET LOGGER ---------------------------------------------------------------
 
 function SetLogger({ exercise, sets, onUpdate, accent }) {
   const isGym = exercise.equipment?.includes("gym");
@@ -608,7 +623,7 @@ function SetLogger({ exercise, sets, onUpdate, accent }) {
   );
 }
 
-// ─── DROPBOX SYNC ────────────────────────────────────────────────────────────
+// DROPBOX SYNC ------------------------------------------------------------
 // Uses Dropbox API v2 with a long-lived access token
 // One-time setup: create token at dropbox.com/developers — no OAuth flow needed
 
@@ -704,19 +719,7 @@ function DropboxSync({ workoutLog, recoveryLog, nutritionLog, bodyweightLog, cus
     }
   };
 
-  // Auto-backup whenever workout data changes (debounced 3s)
-  const autoSaveTimer = useRef(null);
-  useEffect(() => {
-    if (!token || status === "syncing") return;
-    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    autoSaveTimer.current = setTimeout(() => {
-      const data = { workoutLog, recoveryLog, nutritionLog, bodyweightLog, customTargets, savedAt: new Date().toISOString(), version: 1 };
-      dropboxSave(token, data).then(ok => {
-        if (ok) { setStatus("ok"); setLastSync(new Date().toISOString()); }
-      }).catch(() => {});
-    }, 3000);
-    return () => clearTimeout(autoSaveTimer.current);
-  }, [workoutLog, recoveryLog, nutritionLog, bodyweightLog, customTargets, token]);
+  // Note: auto-backup runs in App component so it works on all tabs
 
   return (
     <Card label="DROPBOX BACKUP">
@@ -938,7 +941,7 @@ function ExerciseCard({ ex, sets, onUpdate, accent, prMap, customTargets, onSave
             {ex.type === "time"
               ? `${effectiveTarget.sets} sets · ${effectiveTarget.seconds}s each`
               : `${effectiveTarget.sets} sets · ${effectiveTarget.reps} reps${(effectiveTarget.weight??0)>0?` · ${effectiveTarget.weight}kg`:""}`}
-            {hasCustomTarget && <span style={{ color:accent, marginLeft:6, fontSize:10 }}>✎ custom</span>}
+            {hasCustomTarget && <span style={{ color:accent, marginLeft:6, fontSize:10 }}>✏ custom</span>}
           </div>
           <div style={{ display:"flex", gap:4, marginTop:6, flexWrap:"wrap" }}>
             {activeEquip.map(e => <EquipBadge key={e} eq={e} />)}
@@ -973,7 +976,7 @@ function ExerciseCard({ ex, sets, onUpdate, accent, prMap, customTargets, onSave
             display:"flex", alignItems:"center", justifyContent:"space-between"
           }}>
             <span style={{ color: hasCustomTarget ? accent : "#666", fontSize:12, letterSpacing:1, fontWeight:700 }}>
-              {hasCustomTarget ? "✎ EDIT TARGET" : "SET CUSTOM TARGET"}
+              {hasCustomTarget ? "✏ EDIT TARGET" : "SET CUSTOM TARGET"}
             </span>
             <span style={{ color:"#444", fontSize:11 }}>
               {effectiveTarget.sets}×{ex.type === "time" ? `${effectiveTarget.seconds}s` : effectiveTarget.reps}
@@ -1037,7 +1040,7 @@ function ExerciseCard({ ex, sets, onUpdate, accent, prMap, customTargets, onSave
   );
 }
 
-// ─── VIEWS ────────────────────────────────────────────────────────────────────
+// VIEWS --------------------------------------------------------------------
 
 function WorkoutView({ workoutLog, setWorkoutLog, prMap, customTargets, onSaveTarget }) {
   const todayKey = useMemo(() => new Date().toISOString().split("T")[0], []);
@@ -1139,7 +1142,7 @@ function WorkoutView({ workoutLog, setWorkoutLog, prMap, customTargets, onSaveTa
 
         {day === "Friday" && (
           <div style={{ display:"flex", gap:8, marginTop:14 }}>
-            {[["home","🏠 HOME CALI"],["gym","🏋️ COUNTRY CLUB"]].map(([m,label]) => (
+            {[["home","HOME CALI"],["gym","COUNTRY CLUB"]].map(([m,label]) => (
               <button key={m} onClick={() => setFridayMode(m)} style={{
                 flex:1, padding:"11px", borderRadius:12,
                 border:`1.5px solid ${fridayMode===m ? plan.accent+"88" : "#1e1e1e"}`,
@@ -1268,7 +1271,7 @@ function MiniChart({ title, data, color, unit }) {
   );
 }
 
-// ─── SKILL LADDERS ────────────────────────────────────────────────────────────
+// SKILL LADDERS ------------------------------------------------------------
 // Each skill has a defined progression path with criteria.
 // The engine tracks where you are and what's blocking the next step.
 
@@ -1332,7 +1335,7 @@ const SKILL_LADDERS = {
   }
 };
 
-// ─── COACH ENGINE ─────────────────────────────────────────────────────────────
+// COACH ENGINE -------------------------------------------------------------
 
 function analyzeProgress(workoutLog, customTargets = {}) {
   const insights = [];
@@ -1395,7 +1398,7 @@ function analyzeProgress(workoutLog, customTargets = {}) {
     return allBest > 0 && lastAvg < allBest * 0.8;
   };
 
-  // ── SKILL LADDER ANALYSIS ──────────────────────────────────────────────────
+  // SKILL LADDER ANALYSIS --------------------------------------------------
   // For each skill ladder, find current step and generate a milestone insight
 
   for (const [skillKey, skill] of Object.entries(SKILL_LADDERS)) {
@@ -1456,7 +1459,7 @@ function analyzeProgress(workoutLog, customTargets = {}) {
     }
   }
 
-  // ── CROSS-EXERCISE IMBALANCE DETECTION ────────────────────────────────────
+  // CROSS-EXERCISE IMBALANCE DETECTION ------------------------------------
   // Push vs Pull volume balance
   const pullExIds = ["wg_pullups","ring_rows","ring_rows_fl","fl_raises"];
   const pushExIds = ["pushups","dips","hspu_neg","planche_lean"];
@@ -1506,7 +1509,7 @@ function analyzeProgress(workoutLog, customTargets = {}) {
     });
   }
 
-  // ── PER-EXERCISE PROGRESS / PLATEAU / REGRESSION ──────────────────────────
+  // PER-EXERCISE PROGRESS / PLATEAU / REGRESSION --------------------------
   for (const [exId, sessions] of Object.entries(exSessions)) {
     if (sessions.length < 2) continue;
     const ex = ALL_EXERCISES.find(e => e.id === exId);
@@ -1625,7 +1628,7 @@ function analyzeProgress(workoutLog, customTargets = {}) {
     }
   }
 
-  // ── SORT: skill ladders first, then prereqs, then imbalance, then per-exercise ──
+  // SORT: skill ladders first, then prereqs, then imbalance, then per-exercise --
   const order = { skill:0, skill_complete:1, prereq:2, imbalance:3, progress:4, plateau:5, regression:6 };
   insights.sort((a,b) => (order[a.type]??9) - (order[b.type]??9));
   return insights;
@@ -1942,7 +1945,7 @@ function SettingsView({ workoutLog, recoveryLog, nutritionLog, bodyweightLog, cu
       <Card label="INSTALL ON HOME SCREEN">
         <div style={{ color:"#888", fontSize:14, lineHeight:1.8 }}>
           <strong style={{color:"#ccc"}}>iPhone Safari:</strong> tap the Share icon → "Add to Home Screen"<br/>
-          <strong style={{color:"#ccc"}}>Android Chrome:</strong> tap ⋮ → "Add to Home screen"<br/>
+          <strong style={{color:"#ccc"}}>Android Chrome:</strong> tap ... → "Add to Home screen"<br/>
           <span style={{color:"#444",fontSize:12}}>Runs full-screen. Works offline after first load.</span>
         </div>
       </Card>
@@ -1954,7 +1957,7 @@ function SettingsView({ workoutLog, recoveryLog, nutritionLog, bodyweightLog, cu
   );
 }
 
-// ─── APP ──────────────────────────────────────────────────────────────────────
+// APP ----------------------------------------------------------------------
 
 function App() {
   const [workoutLog,    setWorkoutLog]    = useLocalStorage("kineticos_w1", {});
@@ -1962,11 +1965,24 @@ function App() {
   const [nutritionLog,  setNutritionLog]  = useLocalStorage("kineticos_n1", {});
   const [bodyweightLog, setBodyweightLog] = useLocalStorage("kineticos_b1", {});
   const [customTargets, setCustomTargets] = useLocalStorage("kineticos_t1", {});
+  const [dropboxToken]                    = useLocalStorage("kineticos_dropbox", "");
   const [tab, setTab] = useState("workout");
 
   const onSaveTarget = useCallback((exId, target) => {
     setCustomTargets(prev => ({ ...prev, [exId]: target }));
   }, [setCustomTargets]);
+
+  // Always-on auto-backup — runs on every tab, 3s after any data change
+  const autoSaveTimer = useRef(null);
+  useEffect(() => {
+    if (!dropboxToken) return;
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      const data = { workoutLog, recoveryLog, nutritionLog, bodyweightLog, customTargets, savedAt: new Date().toISOString(), version: 1 };
+      dropboxSave(dropboxToken, data).catch(() => {});
+    }, 3000);
+    return () => clearTimeout(autoSaveTimer.current);
+  }, [workoutLog, recoveryLog, nutritionLog, bodyweightLog, customTargets, dropboxToken]);
 
   const prMap = useMemo(() => {
     const map = {};
@@ -1990,11 +2006,11 @@ function App() {
   }, [workoutLog]);
 
   const tabs = [
-    { id:"workout",  label:"TRAIN",   icon:"◉" },
-    { id:"recovery", label:"RECOVER", icon:"♡" },
-    { id:"stats",    label:"STATS",   icon:"▦" },
-    { id:"fuel",     label:"FUEL",    icon:"◎" },
-    { id:"settings", label:"MORE",    icon:"≡" },
+    { id:"workout",  label:"TRAIN",   icon:"O" },
+    { id:"recovery", label:"RECOVER", icon:"+" },
+    { id:"stats",    label:"STATS",   icon:"#" },
+    { id:"fuel",     label:"FUEL",    icon:"@" },
+    { id:"settings", label:"MORE",    icon:"=" },
   ];
 
   return (
@@ -2004,22 +2020,7 @@ function App() {
       minHeight:"100svh", maxWidth:480, margin:"0 auto",
       position:"relative", overflowX:"hidden"
     }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&display=swap');
-        *, *::before, *::after { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
-        input[type=number] { -moz-appearance:textfield; }
-        ::-webkit-scrollbar { display:none; }
-        html { scroll-behavior:smooth; }
-        @keyframes slideUp {
-          from { opacity:0; transform:translateY(8px); }
-          to   { opacity:1; transform:none; }
-        }
-        .view { animation: slideUp 0.18s ease both; }
-        button { font-family:inherit; }
-        input, textarea { font-family:inherit; }
-      `}</style>
+      {/* styles in head */}
 
       {/* Fixed header */}
       <div style={{
