@@ -624,18 +624,87 @@ function SetLogger({ exercise, sets, onUpdate, accent }) {
   );
 }
 
-// DROPBOX SYNC ------------------------------------------------------------
-// Uses Dropbox API v2 with a long-lived access token
-// One-time setup: create token at dropbox.com/developers — no OAuth flow needed
+// DROPBOX OAUTH ------------------------------------------------------------
 
-const DROPBOX_PATH = "/kineticos-backup.json";
+const WORKER_URL = "https://kineticos-proxy.eduardoviesca.workers.dev";
+const DBX_APP_KEY = "r03kzuyhd4yxqco";
+const DBX_REDIRECT = "https://kinecticos.vercel.app";
+
+async function getValidDropboxToken() {
+  let token = null, expiry = 0, refresh = null;
+  try {
+    token = localStorage.getItem("kineticos_dbx_token");
+    if (!token) { const m = document.cookie.match(/kineticos_dbx_token=([^;]*)/); if (m) token = decodeURIComponent(m[1]); }
+    expiry = parseInt(localStorage.getItem("kineticos_dbx_expiry") || "0");
+    refresh = localStorage.getItem("kineticos_dbx_refresh");
+    if (!refresh) { const m = document.cookie.match(/kineticos_dbx_refresh=([^;]*)/); if (m) refresh = decodeURIComponent(m[1]); }
+  } catch {}
+  if (token && expiry && Date.now() < expiry - 300000) return token;
+  if (refresh) {
+    try {
+      const r = await fetch(WORKER_URL + "/kineticos-dropbox-refresh", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refresh })
+      });
+      const d = await r.json();
+      if (d.access_token) { saveDropboxTokens(d.access_token, refresh, d.expires_in); return d.access_token; }
+    } catch {}
+  }
+  return null;
+}
+
+function saveDropboxTokens(accessToken, refreshToken, expiresIn) {
+  const expiry = Date.now() + ((expiresIn || 14400) * 1000);
+  const opts = "; max-age=31536000; path=/; SameSite=Strict";
+  try {
+    localStorage.setItem("kineticos_dbx_token", accessToken);
+    localStorage.setItem("kineticos_dbx_expiry", String(expiry));
+    if (refreshToken) localStorage.setItem("kineticos_dbx_refresh", refreshToken);
+    document.cookie = "kineticos_dbx_token=" + encodeURIComponent(accessToken) + opts;
+    document.cookie = "kineticos_dbx_expiry=" + expiry + opts;
+    if (refreshToken) document.cookie = "kineticos_dbx_refresh=" + encodeURIComponent(refreshToken) + opts;
+  } catch {}
+}
+
+function startDropboxOAuth() {
+  const state = Math.random().toString(36).slice(2);
+  localStorage.setItem("kineticos_dbx_state", state);
+  window.location.href = "https://www.dropbox.com/oauth2/authorize" +
+    "?client_id=" + DBX_APP_KEY +
+    "&response_type=code&token_access_type=offline" +
+    "&redirect_uri=" + encodeURIComponent(DBX_REDIRECT) +
+    "&state=" + state;
+}
+
+async function handleDropboxCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("code");
+  const state = params.get("state");
+  if (!code) return false;
+  if (state !== localStorage.getItem("kineticos_dbx_state")) return false;
+  window.history.replaceState({}, "", window.location.pathname);
+  localStorage.removeItem("kineticos_dbx_state");
+  try {
+    const r = await fetch(WORKER_URL + "/kineticos-dropbox-auth", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code, redirect_uri: DBX_REDIRECT })
+    });
+    const d = await r.json();
+    if (d.access_token) {
+      saveDropboxTokens(d.access_token, d.refresh_token, d.expires_in);
+      localStorage.removeItem("kineticos_dropbox");
+      return true;
+    }
+  } catch {}
+  return false;
+}
 
 async function dropboxSave(token, data) {
   const r = await fetch("https://content.dropboxapi.com/2/files/upload", {
     method: "POST",
     headers: {
       "Authorization": "Bearer " + token,
-      "Dropbox-API-Arg": JSON.stringify({ path: DROPBOX_PATH, mode: "overwrite", autorename: false }),
+      "Dropbox-API-Arg": JSON.stringify({ path: "/kineticos-backup.json", mode: "overwrite", autorename: false }),
       "Content-Type": "application/octet-stream"
     },
     body: JSON.stringify(data)
@@ -648,7 +717,7 @@ async function dropboxRestore(token) {
     method: "POST",
     headers: {
       "Authorization": "Bearer " + token,
-      "Dropbox-API-Arg": JSON.stringify({ path: DROPBOX_PATH })
+      "Dropbox-API-Arg": JSON.stringify({ path: "/kineticos-backup.json" })
     }
   });
   if (!r.ok) return null;
@@ -664,35 +733,56 @@ async function dropboxCheckToken(token) {
   return r.ok;
 }
 
+
 function DropboxSync({ workoutLog, recoveryLog, nutritionLog, bodyweightLog, customTargets,
                        setWorkoutLog, setRecoveryLog, setNutritionLog, setBodyweightLog, setCustomTargets }) {
-  const [token, setToken] = useLocalStorage("kineticos_dropbox", "");
-  const [showSetup, setShowSetup] = useState(false);
-  const [status, setStatus] = useState(() => token ? "ok" : "idle");
+  const [status, setStatus] = useState("idle");
   const [lastSync, setLastSync] = useLocalStorage("kineticos_last_sync", null);
   const [msg, setMsg] = useState("");
   const [restoreConfirm, setRestoreConfirm] = useState(false);
-  const [tokenInput, setTokenInput] = useState("");
+  const [checking, setChecking] = useState(false);
+
+  // Check if we have a valid token on mount
+  useEffect(() => {
+    getValidDropboxToken().then(t => {
+      if (t) setStatus("ok");
+    });
+  }, []);
+
+  // Handle OAuth callback (code in URL after Dropbox redirect)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("code")) {
+      setStatus("syncing"); setMsg("Connecting to Dropbox...");
+      handleDropboxCallback().then(ok => {
+        if (ok) { setStatus("ok"); setMsg("✓ Dropbox connected permanently!"); }
+        else { setStatus("error"); setMsg("Connection failed. Try again."); }
+      });
+    }
+  }, []);
 
   const statusColor = { idle:"#555", syncing:"#fbbf24", ok:"#4ade80", error:"#fb7185" }[status];
   const statusLabel = { idle:"NOT CONFIGURED", syncing:"SYNCING...", ok:"SYNCED ✓", error:"ERROR" }[status];
 
   const handleSave = async () => {
-    if (!token) return;
     setStatus("syncing"); setMsg("");
+    const token = await getValidDropboxToken();
+    if (!token) { setStatus("error"); setMsg("Not connected. Tap Connect below."); return; }
     try {
       const data = { workoutLog, recoveryLog, nutritionLog, bodyweightLog, customTargets, savedAt: new Date().toISOString(), version: 1 };
       const ok = await dropboxSave(token, data);
-      if (ok) { setStatus("ok"); setLastSync(new Date().toISOString()); setMsg(""); }
-      else { setStatus("error"); setMsg("Save failed. Check your token."); }
-    } catch(e) { setStatus("error"); setMsg("Network error."); }
+      if (ok) { setStatus("ok"); setLastSync(new Date().toISOString()); }
+      else { setStatus("error"); setMsg("Save failed."); }
+    } catch { setStatus("error"); setMsg("Network error."); }
   };
 
   const handleRestore = async () => {
     setStatus("syncing"); setMsg("");
+    const token = await getValidDropboxToken();
+    if (!token) { setStatus("error"); setMsg("Not connected."); return; }
     try {
       const data = await dropboxRestore(token);
-      if (!data) { setStatus("error"); setMsg("No backup found in Dropbox."); return; }
+      if (!data) { setStatus("error"); setMsg("No backup found."); return; }
       if (data.workoutLog)    setWorkoutLog(data.workoutLog);
       if (data.recoveryLog)   setRecoveryLog(data.recoveryLog);
       if (data.nutritionLog)  setNutritionLog(data.nutritionLog);
@@ -701,30 +791,11 @@ function DropboxSync({ workoutLog, recoveryLog, nutritionLog, bodyweightLog, cus
       setStatus("ok");
       setMsg("✓ Restored from " + (data.savedAt ? new Date(data.savedAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "backup"));
       setRestoreConfirm(false);
-    } catch(e) { setStatus("error"); setMsg("Restore failed."); }
+    } catch { setStatus("error"); setMsg("Restore failed."); }
   };
-
-  const handleConnectToken = async () => {
-    if (!tokenInput.trim()) return;
-    setStatus("syncing"); setMsg("");
-    const ok = await dropboxCheckToken(tokenInput.trim());
-    if (ok) {
-      setToken(tokenInput.trim());
-      setStatus("ok");
-      setMsg("✓ Dropbox connected!");
-      setShowSetup(false);
-      setTokenInput("");
-    } else {
-      setStatus("error");
-      setMsg("Invalid token. Please check and try again.");
-    }
-  };
-
-  // Note: auto-backup runs in App component so it works on all tabs
 
   return (
     <Card label="DROPBOX BACKUP">
-      {/* Status */}
       <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
         <div style={{ width:8, height:8, borderRadius:"50%", background:statusColor, flexShrink:0,
           boxShadow: status==="ok" ? "0 0 8px "+statusColor : "none" }} />
@@ -736,54 +807,23 @@ function DropboxSync({ workoutLog, recoveryLog, nutritionLog, bodyweightLog, cus
             </div>
           )}
         </div>
-        <button onClick={() => setShowSetup(s => !s)} style={{
-          background:"none", border:"1px solid #333", borderRadius:8,
-          color:"#666", cursor:"pointer", fontSize:11, padding:"4px 10px"
-        }}>{token ? "change" : "setup"}</button>
       </div>
 
-      {/* Setup panel */}
-      {showSetup && (
-        <div style={{ background:"#0d0d0d", borderRadius:10, padding:14, marginBottom:12 }}>
-          <div style={{ color:"#888", fontSize:12, lineHeight:1.8, marginBottom:12 }}>
-            <strong style={{color:"#ccc"}}>3-step setup:</strong><br/>
-            1. Go to <strong style={{color:"#4ade80"}}>dropbox.com/developers/apps</strong><br/>
-            2. Create App → Scoped → Full Dropbox → name it <strong style={{color:"#fff"}}>KineticOS</strong><br/>
-            3. Permissions tab → check <strong style={{color:"#fff"}}>files.content.write</strong> + <strong style={{color:"#fff"}}>files.content.read</strong> → Submit<br/>
-            4. Settings tab → Generate access token → paste below
-          </div>
-          <input
-            placeholder="Paste Dropbox access token here..."
-            value={tokenInput}
-            onChange={e => setTokenInput(e.target.value)}
-            style={{
-              background:"#1a1a1a", border:"1px solid #333", borderRadius:8,
-              color:"#fff", padding:"10px 12px", fontSize:12, width:"100%",
-              boxSizing:"border-box", outline:"none", fontFamily:"inherit", marginBottom:10
-            }}
-          />
-          <button onClick={handleConnectToken} style={{
-            width:"100%", padding:"11px", borderRadius:10,
-            border:"1px solid #4ade8066", background:"#4ade8018",
-            color:"#4ade80", cursor:"pointer", fontSize:13, fontWeight:800
-          }}>Connect Dropbox</button>
-        </div>
-      )}
+      {msg && <div style={{ fontSize:12, color: msg.startsWith("✓") ? "#4ade80" : "#fb7185", marginBottom:10 }}>{msg}</div>}
 
-      {/* Action buttons — only show when connected */}
-      {token && !showSetup && (
+      {status === "ok" ? (
         <div style={{ display:"flex", gap:8 }}>
           <button onClick={handleSave} style={{
             flex:2, padding:"11px", borderRadius:10,
             border:"1px solid #4ade8044", background:"#4ade8010",
             color:"#4ade80", cursor:"pointer", fontSize:13, fontWeight:800
-          }}>{status==="syncing" ? "Saving..." : "↑ Backup Now"}</button>
+          }}>{status==="syncing" ? "Saving..." : "Backup Now"}</button>
           {!restoreConfirm
             ? <button onClick={() => setRestoreConfirm(true)} style={{
                 flex:1, padding:"11px", borderRadius:10,
                 border:"1px solid #38bdf844", background:"#38bdf810",
                 color:"#38bdf8", cursor:"pointer", fontSize:13, fontWeight:800
-              }}>↓ Restore</button>
+              }}>Restore</button>
             : <button onClick={handleRestore} style={{
                 flex:1, padding:"11px", borderRadius:10,
                 border:"1px solid #fb718544", background:"#fb718510",
@@ -791,16 +831,16 @@ function DropboxSync({ workoutLog, recoveryLog, nutritionLog, bodyweightLog, cus
               }}>Confirm?</button>
           }
         </div>
+      ) : (
+        <button onClick={startDropboxOAuth} style={{
+          width:"100%", padding:"13px", borderRadius:10,
+          border:"1px solid #4ade8066", background:"#4ade8018",
+          color:"#4ade80", cursor:"pointer", fontSize:13, fontWeight:800
+        }}>Connect Dropbox (Permanent)</button>
       )}
-
-      {!token && !showSetup && (
-        <div style={{ color:"#444", fontSize:12, lineHeight:1.6 }}>
-          Connect Dropbox for automatic backup every time you log a workout.
-          Your data is stored privately in your Dropbox account.
-        </div>
-      )}
-
-      {msg && <div style={{ fontSize:12, color: msg.startsWith("✓") ? "#4ade80" : "#fb7185", marginTop:10, lineHeight:1.5 }}>{msg}</div>}
+      <div style={{ fontSize:10, color:"#333", marginTop:10, lineHeight:1.5 }}>
+        {status === "ok" ? "Token auto-renews. Never needs reconnecting." : "One tap — authorized forever via OAuth."}
+      </div>
     </Card>
   );
 }
@@ -1977,16 +2017,17 @@ function App() {
   // Always-on auto-backup — runs on every tab, 3s after any data change
   const autoSaveTimer = useRef(null);
   useEffect(() => {
-    if (!dropboxToken) return;
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    autoSaveTimer.current = setTimeout(() => {
+    autoSaveTimer.current = setTimeout(async () => {
+      const token = await getValidDropboxToken();
+      if (!token) return;
       const data = { workoutLog, recoveryLog, nutritionLog, bodyweightLog, customTargets, savedAt: new Date().toISOString(), version: 1 };
-      dropboxSave(dropboxToken, data).then(ok => {
+      dropboxSave(token, data).then(ok => {
         if (ok) setLastSync(new Date().toISOString());
       }).catch(() => {});
     }, 3000);
     return () => clearTimeout(autoSaveTimer.current);
-  }, [workoutLog, recoveryLog, nutritionLog, bodyweightLog, customTargets, dropboxToken]);
+  }, [workoutLog, recoveryLog, nutritionLog, bodyweightLog, customTargets]);
 
   const prMap = useMemo(() => {
     const map = {};
