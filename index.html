@@ -1087,12 +1087,19 @@ function ExerciseCard({ ex, sets, onUpdate, accent, prMap, customTargets, onSave
   }), [ex, activeEquip, effectiveTarget]);
 
   const hasMeaningfulData = sets.length > 0 && sets.some(s =>
-    ex.type === "time" ? (s.seconds ?? 0) > 0 : (s.reps ?? 0) > 0
+    ex.type === "run"
+      ? (s.miles ?? 0) > 0 || (s.seconds ?? 0) > 0
+      : ex.type === "time" ? (s.seconds ?? 0) > 0 : (s.reps ?? 0) > 0
   );
 
   const isPR = useMemo(() => {
     if (!hasMeaningfulData) return false;
     const best = prMap[ex.id];
+    if (ex.type === "run") {
+      // PR = fastest pace (lowest seconds per mile)
+      const topMiles = Math.max(...sets.map(s => s.miles ?? 0));
+      return best ? topMiles > (best.miles ?? 0) : topMiles > 0;
+    }
     if (ex.type === "reps") {
       const top = Math.max(...sets.map(s => s.reps ?? 0));
       return best ? top > (best.reps ?? 0) : top > 0;
@@ -1102,13 +1109,17 @@ function ExerciseCard({ ex, sets, onUpdate, accent, prMap, customTargets, onSave
   }, [sets, prMap, ex.id, ex.type, hasMeaningfulData]);
 
   const pills = hasMeaningfulData
-    ? sets.filter(s => ex.type === "time" ? (s.seconds??0)>0 : (s.reps??0)>0)
+    ? sets.filter(s => ex.type === "run"
+        ? (s.miles ?? 0) > 0
+        : ex.type === "time" ? (s.seconds??0)>0 : (s.reps??0)>0)
         .map((s,i) => (
           <span key={i} style={{
             fontSize:11, padding:"3px 9px", borderRadius:8,
             background:accent+"18", color:accent, fontWeight:700
           }}>
-            {ex.type === "time" ? `${s.seconds}s` : `${s.reps}${(s.weight??0)>0?`@${s.weight}kg`:""}`}
+            {ex.type === "run"
+              ? `${(s.miles??0).toFixed(1)}mi`
+              : ex.type === "time" ? `${s.seconds}s` : `${s.reps}${(s.weight??0)>0?`@${s.weight}kg`:""}`}
           </span>
         ))
     : [];
@@ -1182,7 +1193,7 @@ function ExerciseCard({ ex, sets, onUpdate, accent, prMap, customTargets, onSave
               {hasCustomTarget ? "✏ EDIT TARGET" : "SET CUSTOM TARGET"}
             </span>
             <span style={{ color:"#444", fontSize:11 }}>
-              {effectiveTarget.sets}×{ex.type === "time" ? `${effectiveTarget.seconds}s` : effectiveTarget.reps}
+              {effectiveTarget.sets}×{ex.type === "run" ? `${effectiveTarget.miles??3}mi` : ex.type === "time" ? `${effectiveTarget.seconds}s` : effectiveTarget.reps}
             </span>
           </button>
 
