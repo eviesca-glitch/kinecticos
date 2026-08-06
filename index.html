@@ -195,7 +195,16 @@ const WEEK_SPLIT = {
   Wednesday: {
     label: "CARDIO", accent: "#38bdf8", icon: "⚡", location: "outdoor",
     exercises: [
-      { id: "sprints", name: "Sprint Intervals", type: "reps",
+      { id: "outdoor_run", name: "Outdoor Run", type: "run",
+        equipment: ["floor"], target: { sets: 1, miles: 3, seconds: 1800 },
+        note: "Log your distance and time. Pace = time / miles.",
+        variations: [
+          { name: "Easy Run (conversational pace)", level: 1, equipment: ["floor"], travel: true },
+          { name: "Tempo Run (comfortably hard)", level: 2, equipment: ["floor"], travel: true },
+          { name: "Long Run (slow + steady)", level: 3, equipment: ["floor"], travel: true },
+          { name: "Weighted Vest Run", level: 4, equipment: ["vest"] },
+        ],
+      },
         equipment: ["floor"], target: { sets: 8, reps: 1, weight: 0 },
         note: "~20s all-out / 40s walk recovery. Outdoors on flat or hill.",
         variations: [
@@ -573,6 +582,98 @@ function Toggle({ value, opts, onChange, colors }) {
 }
 
 // SET LOGGER ---------------------------------------------------------------
+
+function RunLogger({ exercise, sets, onUpdate, accent }) {
+  const tMiles = exercise.target?.miles ?? 3;
+  const tSecs = exercise.target?.seconds ?? 1800;
+
+  const didInit = useRef(false);
+  useEffect(() => {
+    if (!didInit.current && sets.length === 0) {
+      didInit.current = true;
+      onUpdate([{ id: Date.now(), miles: 0, seconds: 0, difficulty: 5, note: "" }]);
+    }
+  }, []);
+
+  const upd = (i, f, v) => onUpdate(sets.map((s, idx) => idx === i ? { ...s, [f]: v } : s));
+
+  const formatPace = (miles, secs) => {
+    if (!miles || !secs) return "--";
+    const secsPerMile = secs / miles;
+    const mins = Math.floor(secsPerMile / 60);
+    const s = Math.round(secsPerMile % 60);
+    return `${mins}:${s.toString().padStart(2,"0")} /mi`;
+  };
+
+  const formatTime = (secs) => {
+    if (!secs) return "--";
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s.toString().padStart(2,"0")}`;
+  };
+
+  return (
+    <div style={{ marginTop:10 }}>
+      {sets.map((s, i) => {
+        const done = (s.miles ?? 0) > 0 && (s.seconds ?? 0) > 0;
+        return (
+          <div key={s.id ?? i} style={{
+            background:"#0d0d0d", borderRadius:14, padding:14, marginBottom:10,
+            border:`1px solid ${done ? accent+"66" : "#1e1e1e"}`
+          }}>
+            {/* Miles + Time side by side */}
+            <div style={{ display:"flex", gap:10, marginBottom:12 }}>
+              <div style={{ flex:1 }}>
+                <Label>MILES{tMiles > 0 ? <span style={{ color:"#555", fontWeight:400 }}> / {tMiles}</span> : ""}</Label>
+                <Stepper value={s.miles ?? 0} onChange={v => upd(i, "miles", v)} step={0.1} min={0} accent={accent} wide />
+              </div>
+              <div style={{ flex:1 }}>
+                <Label>MINUTES</Label>
+                <Stepper value={s.seconds ? Math.round(s.seconds / 60) : 0} onChange={v => upd(i, "seconds", v * 60)} step={1} min={0} accent={accent} wide />
+              </div>
+            </div>
+
+            {/* Pace display */}
+            {done && (
+              <div style={{
+                background:`${accent}0d`, border:`1px solid ${accent}33`,
+                borderRadius:10, padding:"8px 12px", marginBottom:12,
+                display:"flex", justifyContent:"space-between", alignItems:"center"
+              }}>
+                <div>
+                  <div style={{ fontSize:10, color:accent, letterSpacing:1.5 }}>PACE</div>
+                  <div style={{ fontSize:18, fontWeight:900, color:"#fff" }}>{formatPace(s.miles, s.seconds)}</div>
+                </div>
+                <div style={{ textAlign:"right" }}>
+                  <div style={{ fontSize:10, color:"#555", letterSpacing:1.5 }}>TIME</div>
+                  <div style={{ fontSize:18, fontWeight:900, color:"#fff" }}>{formatTime(s.seconds)}</div>
+                </div>
+                <div style={{ textAlign:"right" }}>
+                  <div style={{ fontSize:10, color:"#555", letterSpacing:1.5 }}>DISTANCE</div>
+                  <div style={{ fontSize:18, fontWeight:900, color:"#fff" }}>{(s.miles ?? 0).toFixed(1)} mi</div>
+                </div>
+              </div>
+            )}
+
+            {/* Difficulty */}
+            <Label>EFFORT</Label>
+            <RatingDots value={s.difficulty ?? 5} onChange={v => upd(i, "difficulty", v)} accent={accent} />
+
+            {/* Note */}
+            <input placeholder="Note (route, conditions...)"
+              value={s.note ?? ""} onChange={e => upd(i, "note", e.target.value)}
+              style={{
+                background:"#111", border:"1px solid #222", borderRadius:10,
+                color:"#fff", padding:"9px 12px", fontSize:12, width:"100%",
+                boxSizing:"border-box", outline:"none", marginTop:10
+              }}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function SetLogger({ exercise, sets, onUpdate, accent }) {
   const isGym = exercise.equipment?.includes("gym");
@@ -1037,7 +1138,9 @@ function ExerciseCard({ ex, sets, onUpdate, accent, prMap, customTargets, onSave
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ color:"#fff", fontSize:15, fontWeight:700, lineHeight:1.25 }}>{displayName}</div>
           <div style={{ color:"#999", fontSize:12, marginTop:3 }}>
-            {ex.type === "time"
+            {ex.type === "run"
+              ? `${effectiveTarget.miles ?? 3} mi · ${Math.round((effectiveTarget.seconds ?? 1800)/60)} min target`
+              : ex.type === "time"
               ? `${effectiveTarget.sets} sets · ${effectiveTarget.seconds}s each`
               : `${effectiveTarget.sets} sets · ${effectiveTarget.reps} reps${(effectiveTarget.weight??0)>0?` · ${effectiveTarget.weight}kg`:""}`}
             {hasCustomTarget && <span style={{ color:accent, marginLeft:6, fontSize:10 }}>✏ custom</span>}
@@ -1129,12 +1232,21 @@ function ExerciseCard({ ex, sets, onUpdate, accent, prMap, customTargets, onSave
               ))}
             </div>
           )}
-          <SetLogger
-            exercise={activeEx}
-            sets={sets}
-            onUpdate={onUpdate}
-            accent={accent}
-          />
+          {ex.type === "run" ? (
+            <RunLogger
+              exercise={activeEx}
+              sets={sets}
+              onUpdate={onUpdate}
+              accent={accent}
+            />
+          ) : (
+            <SetLogger
+              exercise={activeEx}
+              sets={sets}
+              onUpdate={onUpdate}
+              accent={accent}
+            />
+          )}
         </div>
       )}
     </div>
