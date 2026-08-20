@@ -51,20 +51,32 @@ const WEEK_SPLIT = {
   Monday: {
     label: "PULL", accent: "#4ade80", icon: "↑", location: "home",
     exercises: [
-      { id: "wg_pullups", name: "Wide-Grip Pull-Ups", type: "reps",
+      { id: "pullups_bar", name: "Pull-Ups (Bar)", type: "reps",
         equipment: ["bar"], target: { sets: 4, reps: 8, weight: 0 },
+        note: "Bodyweight, wide-grip bar. Previous logs under 'wg_pullups' preserved separately.",
         variations: [
           { name: "Table Rows (no equipment)", level: 0, equipment: ["floor"], travel: true },
           { name: "Door Frame Rows", level: 1, equipment: ["floor"], travel: true },
           { name: "Jumping Pull-Ups (assisted)", level: 2, equipment: ["bar"] },
           { name: "Chin-Ups", level: 3, equipment: ["bar"] },
-          { name: "Wide-Grip Pull-Ups", level: 4, equipment: ["bar"] },
           { name: "Close-Grip Pull-Ups", level: 4, equipment: ["bar"] },
+          { name: "Wide-Grip Pull-Ups", level: 4, equipment: ["bar"] },
           { name: "Neutral-Grip Pull-Ups", level: 4, equipment: ["bar"] },
           { name: "Commando Pull-Ups", level: 5, equipment: ["bar"] },
           { name: "Archer Pull-Ups", level: 5, equipment: ["bar"] },
           { name: "Weighted Pull-Ups (+vest)", level: 6, equipment: ["bar","vest"] },
           { name: "One-Arm Pull-Up Negatives", level: 7, equipment: ["bar"] },
+        ],
+      },
+      { id: "pullups_ring_weighted", name: "Weighted Ring Pull-Ups", type: "reps",
+        equipment: ["rings","vest"], target: { sets: 4, reps: 6, weight: 5 },
+        note: "Rings + weighted vest. Different stimulus than bar — rings allow natural wrist rotation.",
+        variations: [
+          { name: "Bodyweight Ring Pull-Ups", level: 1, equipment: ["rings"] },
+          { name: "Ring Pull-Ups + 5kg vest", level: 2, equipment: ["rings","vest"] },
+          { name: "Ring Pull-Ups + 10kg vest", level: 3, equipment: ["rings","vest"] },
+          { name: "Ring Pull-Ups + 15kg vest", level: 4, equipment: ["rings","vest"] },
+          { name: "Ring Pull-Ups + 20kg vest", level: 5, equipment: ["rings","vest"] },
         ],
       },
       { id: "ring_rows", name: "Ring Rows", type: "reps",
@@ -98,6 +110,15 @@ const WEEK_SPLIT = {
           { name: "L-Sit Raises", level: 3, equipment: ["bar"] },
           { name: "Toes-to-Bar", level: 4, equipment: ["bar"] },
           { name: "Windshield Wipers", level: 5, equipment: ["bar"] },
+        ],
+      },
+      { id: "ttb_weighted", name: "Weighted Toes-to-Bar", type: "reps",
+        equipment: ["bar","vest"], target: { sets: 3, reps: 6, weight: 5 },
+        note: "Add vest when bodyweight TTB is consistent at 4×8. Direct hip flexor + lat overload for FL.",
+        variations: [
+          { name: "TTB + 5kg vest", level: 1, equipment: ["bar","vest"] },
+          { name: "TTB + 10kg vest", level: 2, equipment: ["bar","vest"] },
+          { name: "TTB + 15kg vest", level: 3, equipment: ["bar","vest"] },
         ],
       },
       { id: "ring_curl", name: "Ring Bicep Curls", type: "reps",
@@ -289,14 +310,33 @@ const WEEK_SPLIT = {
           { name: "Full FL Raises", level: 4, equipment: ["bar"] },
         ],
       },
-      { id: "hollow_hold", name: "Hollow Body Hold", type: "time",
+      { id: "fl_rows", name: "Front Lever Rows", type: "reps",
+        equipment: ["rings","bar"], target: { sets: 4, reps: 6, weight: 0 },
+        note: "Body horizontal or tucked FL position — pull chest to rings. Distinct from ring rows (requires FL body tension throughout). Hardest pulling movement.",
+        variations: [
+          { name: "Tucked FL Rows (easier)", level: 1, equipment: ["rings"] },
+          { name: "One-Leg FL Rows", level: 2, equipment: ["rings"] },
+          { name: "Straddle FL Rows", level: 3, equipment: ["rings"] },
+          { name: "Full FL Rows", level: 4, equipment: ["rings"] },
+        ],
+      },
+      { id: "hollow_hold_bw", name: "Hollow Hold (Bodyweight)", type: "time",
         equipment: ["floor"], target: { sets: 4, seconds: 30 },
-        note: "Lower back pressed hard into floor. Foundation of all lever work.",
+        note: "Lower back pressed hard into floor. No weight. Foundation of all lever work.",
         variations: [
           { name: "Hollow Body (knees bent)", level: 1, equipment: ["floor"], travel: true },
           { name: "Hollow Body Hold (full)", level: 2, equipment: ["floor"], travel: true },
           { name: "Hollow Body Rock", level: 3, equipment: ["floor"], travel: true },
-          { name: "Weighted Hollow Hold", level: 4, equipment: ["floor"] },
+        ],
+      },
+      { id: "hollow_hold_weighted", name: "Hollow Hold (Weighted)", type: "time",
+        equipment: ["floor"], target: { sets: 4, seconds: 20, weight: 5 },
+        note: "Arms overhead holding weight plate or dumbbell. Separate progression from bodyweight — log weight used.",
+        variations: [
+          { name: "Weighted Hollow Hold (2.5kg)", level: 1, equipment: ["floor"] },
+          { name: "Weighted Hollow Hold (5kg)", level: 2, equipment: ["floor"] },
+          { name: "Weighted Hollow Hold (10kg)", level: 3, equipment: ["floor"] },
+          { name: "Weighted Hollow Hold (15kg)", level: 4, equipment: ["floor"] },
         ],
       },
       { id: "ring_rows_fl", name: "Ring Rows — FL Grip", type: "reps",
@@ -1506,7 +1546,7 @@ const SKILL_LADDERS = {
     icon: "◈",
     color: "#a78bfa",
     steps: [
-      { id: "step_hollow",   label: "Hollow Body Mastery",    criteria: { hollow_hold: { type:"time", secs:30, sets:4 } },
+      { id: "step_hollow",   label: "Hollow Body Mastery",    criteria: { hollow_hold_bw: { type:"time", secs:30, sets:4 } },
         coaching: "Foundation of every lever. Lower back must stay glued to floor for 4×30s before progressing." },
       { id: "step_tuck_fl",  label: "Tuck FL Hold",           criteria: { tuck_fl: { type:"time", secs:10, sets:4 } },
         coaching: "Pull shoulder blades hard together and down. Body horizontal, chin tucked. 4×10s on rings." },
@@ -1546,15 +1586,15 @@ const SKILL_LADDERS = {
     icon: "↑",
     color: "#4ade80",
     steps: [
-      { id: "step_pullups",  label: "4×10 Pull-Ups",         criteria: { wg_pullups: { type:"reps", reps:10, sets:4 } },
+      { id: "step_pullups",  label: "4×10 Pull-Ups",         criteria: { pullups_bar: { type:"reps", reps:10, sets:4 } },
         coaching: "Full dead hang each rep. No kipping. Scapula engaged at the bottom." },
-      { id: "step_weighted", label: "Weighted Pull-Ups",     criteria: { wg_pullups: { type:"reps", reps:8, sets:4 } },
+      { id: "step_weighted", label: "Weighted Pull-Ups",     criteria: { pullups_bar: { type:"reps", reps:8, sets:4 } },
         coaching: "Add 5–10kg vest. Weighted pulling builds the tendon strength required for one-arm work." },
-      { id: "step_archer",   label: "Archer Pull-Ups",       criteria: { wg_pullups: { type:"reps", reps:6, sets:4 } },
+      { id: "step_archer",   label: "Archer Pull-Ups",       criteria: { pullups_bar: { type:"reps", reps:6, sets:4 } },
         coaching: "One arm assists, one arm leads. Alternating. Direct path to one-arm pull-up." },
       { id: "step_rings_pu", label: "Ring Pull-Ups",         criteria: { ring_rows: { type:"reps", reps:10, sets:3 } },
         coaching: "Unstable surface. Turn rings out at the top. Builds the joint integrity for FL and one-arm work." },
-      { id: "step_onearm_neg","label": "One-Arm Negatives", criteria: { wg_pullups: { type:"reps", reps:5, sets:3 } },
+      { id: "step_onearm_neg","label": "One-Arm Negatives", criteria: { pullups_bar: { type:"reps", reps:5, sets:3 } },
         coaching: "Slow 5s descent on one arm. Other hand on wrist only. The hardest calisthenics pulling skill." },
     ]
   }
@@ -1686,7 +1726,7 @@ function analyzeProgress(workoutLog, customTargets = {}) {
 
   // CROSS-EXERCISE IMBALANCE DETECTION ------------------------------------
   // Push vs Pull volume balance
-  const pullExIds = ["wg_pullups","ring_rows","ring_rows_fl","fl_raises"];
+  const pullExIds = ["pullups_bar","pullups_ring_weighted","wg_pullups","ring_rows","ring_rows_fl","fl_raises","fl_rows"];
   const pushExIds = ["pushups","dips","hspu_neg","planche_lean"];
   const pullSessions = pullExIds.reduce((a,id) => a + (exSessions[id]?.length ?? 0), 0);
   const pushSessions = pushExIds.reduce((a,id) => a + (exSessions[id]?.length ?? 0), 0);
@@ -1706,7 +1746,7 @@ function analyzeProgress(workoutLog, customTargets = {}) {
   }
 
   // FL prerequisites: hollow hold must be solid before FL holds
-  const hollowBest = getBest("hollow_hold", "time");
+  const hollowBest = Math.max(getBest("hollow_hold_bw","time"), getBest("hollow_hold","time"));
   const flBest = getBest("tuck_fl", "time");
   if (flBest > 0 && hollowBest < 20) {
     insights.push({ type:"prereq", color:"#fb7185",
@@ -1734,6 +1774,34 @@ function analyzeProgress(workoutLog, customTargets = {}) {
     });
   }
 
+  // FL DIVERGENCE CHECK: FL dropping while pull-ups stable = positional rust, not strength
+  {
+    const pullSessions = Object.entries(exSessions)
+      .filter(([id]) => id === "pullups_bar" || id === "wg_pullups")
+      .flatMap(([,s]) => s)
+      .sort((a,b) => a.date.localeCompare(b.date));
+    const flSessions = (exSessions["tuck_fl"] ?? []).sort((a,b) => a.date.localeCompare(b.date));
+
+    if (pullSessions.length >= 3 && flSessions.length >= 3) {
+      const recentPullAvg = pullSessions.slice(-2).flatMap(s=>s.sets.map(x=>x.reps??0)).reduce((a,b)=>a+b,0) /
+        (pullSessions.slice(-2).flatMap(s=>s.sets).length || 1);
+      const prevPullAvg = pullSessions.slice(-4,-2).flatMap(s=>s.sets.map(x=>x.reps??0)).reduce((a,b)=>a+b,0) /
+        (pullSessions.slice(-4,-2).flatMap(s=>s.sets).length || 1);
+      const recentFLMax = Math.max(...flSessions.slice(-2).flatMap(s=>s.sets.map(x=>x.seconds??0)));
+      const prevFLMax = Math.max(...flSessions.slice(-4,-2).flatMap(s=>s.sets.map(x=>x.seconds??0)));
+
+      const pullStable = prevPullAvg > 0 && recentPullAvg >= prevPullAvg * 0.9;
+      const flDropping = prevFLMax > 0 && recentFLMax < prevFLMax * 0.85;
+
+      if (pullStable && flDropping) {
+        insights.push({ type:"prereq", color:"#a78bfa",
+          message:"FL dropping while pull strength is stable — positional rust detected",
+          action:"This is skill/body position degradation, not strength loss. Drills: 5×5 active scapula hangs, slow FL negatives (5s descent), and 3×3 FL body position holds at 50% effort. Strength is there — reconnect the position."
+        });
+      }
+    }
+  }
+
   // PER-EXERCISE PROGRESS / PLATEAU / REGRESSION --------------------------
   for (const [exId, sessions] of Object.entries(exSessions)) {
     if (sessions.length < 2) continue;
@@ -1753,7 +1821,9 @@ function analyzeProgress(workoutLog, customTargets = {}) {
       // Only push 1 type per exercise — priority: ready > plateau > regression
       if (ready) {
         const nextSteps = {
-          wg_pullups:    `4×${tReps} consistent. Add 2.5kg vest next session. Path: weighted → archer → one-arm negatives.`,
+          pullups_bar:   `4×${tReps} consistent. Add 2.5kg vest or switch to Weighted Ring Pull-Ups. Path: weighted → archer → one-arm negatives.`,
+          wg_pullups:    `Log future sessions under Pull-Ups (Bar). Path: weighted → archer → one-arm negatives.`,
+          pullups_ring_weighted: `Add 2.5kg to the vest. Goal: 4×6 at 20kg+.`,
           ring_rows:     `Elevate feet higher or go body-horizontal. Direct FL horizontal pulling strength.`,
           ttb:           `Progress to Windshield Wipers. Core rotational strength essential for full FL control.`,
           ring_curl:     `Increase body angle. FL puts massive load on bicep tendons — build this progressively.`,
@@ -1769,7 +1839,9 @@ function analyzeProgress(workoutLog, customTargets = {}) {
           core_circuit:  `Add Dragon Flag negatives. Closest floor movement to FL — full body tension from fingertips to toes.`,
           tuck_fl:       `Progress: Advanced Tuck → One-Leg FL → Straddle → Full FL. You're moving.`,
           oneleg_fl:     `Progress to Straddle FL. Legs wide, hips level, body horizontal. One step from the goal.`,
-          hollow_hold:   `Progress to Hollow Body Rock. Rocking hollow trains the body line needed in FL and HSPU.`,
+          hollow_hold_bw: `Progress to Weighted Hollow Hold (hollow_hold_weighted) — separate progression. Or add Hollow Body Rocks.`,
+          hollow_hold_weighted: `Add 2.5kg. Weighted hollow directly overloads the core tension needed for full FL.`,
+          hollow_hold:   `Log future sessions under Hollow Hold (BW) or Weighted. Rocking hollow trains FL body line.`,
           pistol_squat:  `Add weighted vest pistols. Posterior chain strength directly supports FL body tension.`,
           nordic_curl:   `Progress to full Nordic Curls. Strongest hamstring builder in calisthenics — critical for FL.`,
           shrimp_squat:  `Progress to floating shrimp. Single-leg strength baseline for complete calisthenics athlete.`,
@@ -1786,7 +1858,9 @@ function analyzeProgress(workoutLog, customTargets = {}) {
         });
       } else if (plateaued) {
         const plateauFixes = {
+          pullups_bar:  `Try rest-pause sets: hit failure, rest 15s, continue. Breaks neural adaptation.`,
           wg_pullups:   `Try rest-pause sets: hit failure, rest 15s, continue. Breaks neural adaptation.`,
+          pullups_ring_weighted: `Drop vest weight by 2.5kg and rebuild volume before adding load again.`,
           hspu_neg:     `Slow the negative to 6s. Speed was masking weakness. Rebuild with control.`,
           tuck_fl:      `Add FL Raises volume — 5×5 explosive reps. Holds improve through dynamic strength.`,
           fl_raises:    `Drop to 3 reps, add 1kg vest. New stimulus breaks the plateau.`,
@@ -1819,7 +1893,9 @@ function analyzeProgress(workoutLog, customTargets = {}) {
         const timeNextSteps = {
           tuck_fl:      `Extend target by 3s OR progress to Advanced Tuck FL. Keep shoulder blades retracted and down throughout.`,
           oneleg_fl:    `Progress to Straddle FL. Legs wide, body rigid. One step from full front lever.`,
-          hollow_hold:  `Add Hollow Body Rocks: 3s hold → rock → 3s hold. Trains the body line dynamically.`,
+          hollow_hold_bw: `Reduce hold time 20%, focus on perfect lower back contact, rebuild.`,
+          hollow_hold_weighted: `Drop weight by 2.5kg and rebuild to target time before adding load.`,
+          hollow_hold:  `Log future sessions under new hollow hold entries.`,
           dead_hang:    `Switch to Active Hang with scapula fully pulled down and back — this IS the FL starting position.`,
           planche_lean: `Progress to Tuck Planche. Round upper back, protract hard, lean until feet lift. This is the path to freestanding HSPU.`,
           lsit:         `Progress to parallettes L-Sit, then work toward V-Sit. V-Sit is elite core compression.`,
@@ -1972,7 +2048,7 @@ function DashboardView({ workoutLog, prMap, bodyweightLog, customTargets }) {
 
   const pullupData = useMemo(() => dates.map(dt => ({
     label: dt.slice(5),
-    value: (workoutLog[dt]?.["wg_pullups"] ?? []).reduce((a,s)=>a+(s.reps??0), 0)
+    value: [...(workoutLog[dt]?.["pullups_bar"]??[]), ...(workoutLog[dt]?.["wg_pullups"]??[])].reduce((a,s)=>a+(s.reps??0), 0)
   })), [dates, workoutLog]);
 
   const flData = useMemo(() => dates.map(dt => {
@@ -2003,7 +2079,7 @@ function DashboardView({ workoutLog, prMap, bodyweightLog, customTargets }) {
     const signals = [];
 
     // Pull-up trend
-    const pullSessions = last7days.map(dt => workoutLog[dt]?.wg_pullups).filter(Boolean);
+    const pullSessions = last7days.map(dt => [...(workoutLog[dt]?.pullups_bar??[]), ...(workoutLog[dt]?.wg_pullups??[])]).filter(s=>s.length>0);
     if (pullSessions.length >= 2) {
       const recent = pullSessions[pullSessions.length-1];
       const prev = pullSessions[pullSessions.length-2];
@@ -2326,7 +2402,6 @@ function App() {
 
   const tabs = [
     { id:"workout",  label:"TRAIN",   icon:"O" },
-    { id:"recovery", label:"RECOVER", icon:"+" },
     { id:"stats",    label:"STATS",   icon:"#" },
     { id:"fuel",     label:"FUEL",    icon:"@" },
     { id:"settings", label:"MORE",    icon:"=" },
@@ -2374,8 +2449,7 @@ function App() {
 
       {/* Bottom nav */}
       <div style={{
-        position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)",
-        width:"100%", maxWidth:480,
+        position:"fixed", bottom:0, left:0, right:0,
         background:"rgba(10,10,10,0.97)", backdropFilter:"blur(12px)",
         borderTop:"1px solid #181818",
         display:"flex",
